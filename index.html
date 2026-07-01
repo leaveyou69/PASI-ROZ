@@ -639,14 +639,28 @@ function updateBrand(){ const n=brandName(); const el=$('brandName'); if(el) el.
 
 /* ---------- Mascot stages ---------- */
 const STAGES=[
-  {min:0,     face:'🐱', name:'Pisoi bebe'},
-  {min:5000,  face:'🐈', name:'Pisoi'},
-  {min:20000, face:'😺', name:'Pisicuță'},
-  {min:60000, face:'😸', name:'Pisică mare'},
-  {min:150000,face:'😻', name:'Pisică Regală 👑'},
-  {min:400000,face:'🦄', name:'Pisica Legendară ✨'},
+  {min:0,     face:'🐱', name:'Pisoi bebe',         hx:0.416,hy:0.030,iw:480,ih:440},
+  {min:5000,  face:'🐈', name:'Pisoi',              hx:0.489,hy:0.028,iw:480,ih:431},
+  {min:20000, face:'😺', name:'Pisicuță',           hx:0.402,hy:0.028,iw:480,ih:429},
+  {min:60000, face:'😸', name:'Pisică mare',        hx:0.520,hy:0.023,iw:442,ih:480},
+  {min:150000,face:'😻', name:'Pisică Regală 👑',    hx:0.509,hy:0.027,iw:440,ih:480},
+  {min:400000,face:'🦄', name:'Pisica Legendară ✨', hx:0.498,hy:0.022,iw:480,ih:465},
 ];
 function stageOf(total){ let s=STAGES[0],idx=0; STAGES.forEach((st,i)=>{ if(total>=st.min){s=st;idx=i;} }); return {st:s,idx}; }
+
+/* Poziționează accesoriul pe capul pisicii curente (per-pose, ținând cont de object-fit:contain) */
+const STAGE_PX=150;
+function positionAcc(idx, acc, isImg){
+  const st=STAGES[idx], el=$('catAcc');
+  const scale=Math.min(STAGE_PX/st.iw, STAGE_PX/st.ih);
+  const dispW=st.iw*scale, dispH=st.ih*scale;
+  const offX=(STAGE_PX-dispW)/2, offY=(STAGE_PX-dispH)/2;
+  const cx=offX+st.hx*dispW, cy=offY+st.hy*dispH+acc.yAdj*dispH, w=acc.w*dispW;
+  el.style.left=cx+'px'; el.style.top=cy+'px';
+  el.style.width=w+'px'; el.style.height=w+'px';
+  el.style.transform='translate(-50%,-50%)';
+  el.style.fontSize=(isImg?34:w*0.75)+'px';
+}
 
 /* ---------- Cat sprites (cat/cat-1.png ... cat-6.png, fallback la emoji) ---------- */
 const CAT_IMG={}; // idx -> src (dacă imaginea există) sau false
@@ -676,16 +690,17 @@ function moodMsg(){
 }
 
 /* ---------- Shop items ---------- */
-/* Toate se poartă pe CAP (ancorate sus-centru). top = offset vertical, sc = scală. */
+/* Se poartă pe CAP, poziționate per-pose din ancora capului (vezi positionAcc).
+   w = lățime relativă la pisica afișată; yAdj = ajustare verticală (fracție din înălțime). */
 const ACCESSORIES=[
-  {id:'none',      ico:'🚫', emoji:'',   name:'Fără',        cost:0,   top:0,  sc:1},
-  {id:'bow',       ico:'🎀', emoji:'🎀', name:'Fundiță roz', cost:50,  top:-4, sc:1},
-  {id:'flower',    ico:'🌷', emoji:'🌷', name:'Coroniță flori',cost:90,top:-8, sc:1.15},
-  {id:'headphones',ico:'🎧', emoji:'🎧', name:'Căști roz',   cost:130, top:2,  sc:1.25},
-  {id:'partyhat',  ico:'🎉', emoji:'🎉', name:'Pălărie petrecere',cost:160,top:-14,sc:1.1},
-  {id:'witch',     ico:'🧙‍♀️',emoji:'🧙‍♀️',name:'Pălărie vrăjitoare',cost:200,top:-16,sc:1.2},
-  {id:'tiara',     ico:'👑', emoji:'👑', name:'Coroniță aurie',cost:280,top:-10,sc:1},
-  {id:'halo',      ico:'😇', emoji:'😇', name:'Aureolă îngeraș',cost:350,top:-18,sc:1.1},
+  {id:'none',      ico:'🚫', emoji:'',   name:'Fără',        cost:0,   w:0,    yAdj:0},
+  {id:'bow',       ico:'🎀', emoji:'🎀', name:'Fundiță roz', cost:50,  w:0.34, yAdj:0.00},
+  {id:'flower',    ico:'🌷', emoji:'🌷', name:'Coroniță flori',cost:90,w:0.50, yAdj:0.02},
+  {id:'headphones',ico:'🎧', emoji:'🎧', name:'Căști roz',   cost:130, w:0.62, yAdj:0.05},
+  {id:'partyhat',  ico:'🎉', emoji:'🎉', name:'Pălărie petrecere',cost:160,w:0.50,yAdj:-0.06},
+  {id:'witch',     ico:'🧙‍♀️',emoji:'🧙‍♀️',name:'Pălărie vrăjitoare',cost:200,w:0.55,yAdj:-0.08},
+  {id:'tiara',     ico:'👑', emoji:'👑', name:'Coroniță aurie',cost:280,w:0.54,yAdj:0.12},
+  {id:'halo',      ico:'😇', emoji:'😇', name:'Aureolă îngeraș',cost:350,w:0.48,yAdj:-0.14},
 ];
 const ACC_IMG={}; // id -> src sau false
 function preloadAcc(){ ACCESSORIES.forEach(a=>{ if(a.id==='none') return; const img=new Image(); img.onload=()=>{ ACC_IMG[a.id]=img.src; if(S.equipAcc===a.id) renderMascot(); }; img.onerror=()=>{ ACC_IMG[a.id]=false; }; img.src='acc/'+a.id+'.png'; }); }
@@ -811,10 +826,13 @@ function renderMascot(){
   $('catStageName').textContent=st.name;
   const acc=ACCESSORIES.find(a=>a.id===S.equipAcc)||ACCESSORIES[0];
   const accEl=$('catAcc'), accSrc=ACC_IMG[acc.id];
-  if(acc.id==='none'){ accEl.innerHTML=''; }
-  else if(accSrc){ accEl.innerHTML='<img src="'+accSrc+'" alt="" draggable="false" style="width:100%;height:100%;object-fit:contain">'; }
-  else { accEl.textContent=acc.emoji||''; }
-  accEl.style.top=(acc.top||0)+'px'; accEl.style.transform='translateX(-50%) scale('+(acc.sc||1)+')';
+  if(acc.id==='none'){ accEl.innerHTML=''; accEl.style.display='none'; }
+  else {
+    accEl.style.display='';
+    if(accSrc){ accEl.innerHTML='<img src="'+accSrc+'" alt="" draggable="false">'; }
+    else { accEl.innerHTML=''; accEl.textContent=acc.emoji||''; }
+    positionAcc(idx, acc, !!accSrc);
+  }
   const nm=S.cat.name||'Pisicuța';
   $('catName').innerHTML=nm+' <span class="edit" id="renameTrigger">✏️</span>';
   $('renameTrigger').onclick=openRename;
