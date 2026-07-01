@@ -10,6 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{
   --pink-1:#ff8fc7; --pink-2:#ff5fa2; --pink-3:#ff2d87; --pink-deep:#d6186b;
@@ -269,6 +271,22 @@ body{
 .celebrate .big-em{font-size:88px;animation:bob 1.4s infinite}
 .celebrate h2{font-family:'Baloo 2';font-weight:800;font-size:30px;color:var(--pink-3);margin:6px 0;text-shadow:0 3px 0 #fff}
 .celebrate p{font-size:16px;font-weight:600;color:var(--ink)}
+/* Map card */
+.map-card{padding:16px}
+.globe-wrap{position:relative;width:170px;height:170px;margin:0 auto 6px}
+.globe-wrap canvas{width:170px;height:170px;cursor:grab}
+.globe-cap{text-align:center;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:-4px 0 10px}
+.globe-cap b{color:var(--pink-3)}
+#map{width:100%;height:240px;border-radius:20px;overflow:hidden;border:2px solid #ffd0e8;background:#ffe9f4;z-index:1}
+.leaflet-container{font-family:'Fredoka',sans-serif;background:#ffe9f4}
+.leaflet-control-attribution{font-size:9px;background:rgba(255,255,255,.7)!important}
+.cat-pin{font-size:26px;filter:drop-shadow(0 3px 4px rgba(214,24,107,.4));transform:translate(-2px,-4px)}
+.map-foot{display:flex;align-items:center;gap:10px;margin-top:12px}
+.map-foot .mf-stat{flex:1;background:#fff0f7;border-radius:14px;padding:9px 12px;text-align:center}
+.map-foot .mf-stat .mv{font-family:'Baloo 2';font-weight:800;font-size:17px;color:var(--pink-3);line-height:1}
+.map-foot .mf-stat .ml{font-size:10px;font-weight:600;color:var(--ink-soft);margin-top:2px;text-transform:uppercase;letter-spacing:.4px}
+.gps-note{font-size:11.5px;color:var(--ink-soft);text-align:center;margin-top:10px;line-height:1.35}
+.gps-note.drive{color:#ff5b6e;font-weight:600}
 @media(max-width:360px){.steps-num{font-size:46px}.ring-wrap{width:216px;height:216px}}
 </style>
 </head>
@@ -361,6 +379,22 @@ body{
         <div class="vs-box"><div class="vl">Săptămâna trecută</div><div class="vv" id="vsLast">0</div></div>
       </div>
       <div class="vs-delta" id="vsDelta"></div>
+    </div>
+  </div>
+
+  <!-- Map / GPS -->
+  <div class="section">
+    <div class="section-title"><span class="em">🌍</span> Harta ta</div>
+    <div class="card map-card">
+      <div class="globe-wrap"><canvas id="globe" width="340" height="340"></canvas></div>
+      <div class="globe-cap" id="globeCap">Aici ești <b>tu</b> pe glob 💖</div>
+      <div id="map"></div>
+      <div class="map-foot">
+        <div class="mf-stat"><div class="mv" id="gpsKm">0,0</div><div class="ml">km reali GPS</div></div>
+        <div class="mf-stat"><div class="mv" id="gpsSpeed">—</div><div class="ml">km/h acum</div></div>
+        <div class="mf-stat"><div class="mv" id="trailPts">0</div><div class="ml">puncte traseu</div></div>
+      </div>
+      <div class="gps-note" id="gpsNote">Apasă „Pornește" sus — pornim și GPS-ul: traseu pe hartă + protecție anti-mașină 🚗</div>
     </div>
   </div>
 
@@ -529,7 +563,7 @@ const STEP_M = 0.000762; // km per step (~0.76 m stride)
 
 /* ---------- State ---------- */
 const DEFAULTS = { goal:8000, sensitivity:1.3, history:{}, xp:0, total:0, coins:0,
-  badges:[], activeSec:0, streak:0, bestStreak:0,
+  badges:[], activeSec:0, streak:0, bestStreak:0, trail:[], gpsMeters:0,
   cat:{name:'', set:false}, owned:['none','pastel'], equipAcc:'none', theme:'pastel',
   questDone:{}, weekDone:{} };
 let S = load();
@@ -539,6 +573,7 @@ function load(){
     const s = Object.assign({}, DEFAULTS, raw);
     s.history=raw.history||{}; s.badges=raw.badges||[]; s.cat=Object.assign({name:'',set:false},raw.cat||{});
     s.owned=raw.owned||['none','pastel']; s.questDone=raw.questDone||{}; s.weekDone=raw.weekDone||{};
+    s.trail=Array.isArray(raw.trail)?raw.trail:[]; s.gpsMeters=raw.gpsMeters||0;
     if(!s.owned.includes('none'))s.owned.push('none'); if(!s.owned.includes('pastel'))s.owned.push('pastel');
     if(s.total<sumHistory(s.history)) s.total=sumHistory(s.history); // migrate / safety
     return s;
@@ -597,6 +632,7 @@ function detectStep(v,t){
 }
 let pendingDraw=false;
 function onStep(){
+  if(GPS.driving && Date.now()-GPS.lastFixTs<20000) return; // ești în vehicul (GPS) => NU numărăm
   setToday(getToday()+1); S.total++; S.activeSec+=0.55; engine.lastStepTs=Date.now(); addXp(1);
   if(!pendingDraw){ pendingDraw=true; requestAnimationFrame(()=>{pendingDraw=false; render();}); }
   checkAll(); save();
@@ -609,10 +645,11 @@ async function startSensor(){
     if(typeof DeviceMotionEvent==='undefined'){ sensorState('unsupported'); return; }
     window.addEventListener('devicemotion',handleMotion,{passive:true});
     resetEngine(); engine.active=true; engine.gotData=false; sensorState('live');
+    startGps(); // GPS odată cu senzorul: traseu pe hartă + anti-mașină
     setTimeout(()=>{ if(engine.active&&!engine.gotData) sensorState('nodata'); },1800);
   }catch(err){ sensorState('error'); }
 }
-function stopSensor(){ window.removeEventListener('devicemotion',handleMotion); engine.active=false; sensorState('off'); }
+function stopSensor(){ window.removeEventListener('devicemotion',handleMotion); engine.active=false; sensorState('off'); stopGps(); }
 function sensorState(st){
   const dot=$('sensorDot'), txt=$('sensorTxt'), btn=$('startBtn'); dot.className='dot';
   const M={
@@ -626,6 +663,109 @@ function sensorState(st){
   const m=M[st]||M.error; dot.classList.add(m[0]); txt.innerHTML=m[1];
   if(m[2]===''){ btn.style.display='none'; } else { btn.style.display=''; btn.textContent=m[2]; btn.dataset.on=m[3]; }
   if(st==='nodata') engine.active=false;
+}
+
+/* ---------- GPS: gating mașină + traseu real ----------
+   Pornit odată cu senzorul. Accelerometrul singur nu distinge mașina de mers
+   (6000 pași falși într-o cursă cu mașina) => dacă viteza GPS depășește ~11 km/h
+   ridicăm flag-ul `driving` și onStep() nu mai numără. Histerezis ca să nu
+   clipească la semafor. Punctele bune se adună în S.trail (hartă) + S.gpsMeters. */
+const GPS={ watchId:null, last:null, lastFixTs:0, speed:0, driving:false, denied:false, ok:false };
+const DRIVE_ON=3.0, DRIVE_OFF=2.2; // m/s
+function haversine(a,b){
+  const R=6371000, r=Math.PI/180;
+  const dLat=(b[0]-a[0])*r, dLng=(b[1]-a[1])*r;
+  const s=Math.sin(dLat/2)**2 + Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(s));
+}
+function startGps(){
+  if(!('geolocation' in navigator)){ updateGpsUI(); return; }
+  if(GPS.watchId!=null) return;
+  GPS.watchId=navigator.geolocation.watchPosition(onFix,onGpsErr,{enableHighAccuracy:true,maximumAge:1000,timeout:15000});
+  updateGpsUI();
+}
+function stopGps(){
+  if(GPS.watchId!=null && navigator.geolocation) navigator.geolocation.clearWatch(GPS.watchId);
+  GPS.watchId=null; GPS.driving=false; GPS.speed=0; GPS.last=null; updateGpsUI();
+}
+function onGpsErr(err){ if(err && err.code===1){ GPS.denied=true; GPS.ok=false; } updateGpsUI(); }
+function onFix(pos){
+  const c=pos.coords, t=pos.timestamp||Date.now();
+  GPS.ok=true; GPS.denied=false;
+  if(c.accuracy!=null && c.accuracy>60){ updateGpsUI(); return; } // fix prea slab, nu-l folosim
+  const pt=[+c.latitude.toFixed(5), +c.longitude.toFixed(5)];
+  let sp=(typeof c.speed==='number' && isFinite(c.speed) && c.speed>=0)?c.speed:null;
+  if(sp==null && GPS.last){
+    const dt=(t-GPS.lastFixTs)/1000;
+    if(dt>0.5 && dt<30) sp=haversine(GPS.last,pt)/dt;
+  }
+  if(sp!=null) GPS.speed=0.6*GPS.speed+0.4*sp;
+  const was=GPS.driving;
+  if(GPS.speed>DRIVE_ON) GPS.driving=true; else if(GPS.speed<DRIVE_OFF) GPS.driving=false;
+  if(GPS.driving && !was){ engine.cadence.length=0; engine.primed=false; toast('🚗','Pari în mașină — pun pauză la numărat pași'); }
+  if(!GPS.driving){
+    const prev=S.trail.length?S.trail[S.trail.length-1]:null;
+    const minMove=Math.max(8,(c.accuracy||10)*0.8); // ignoră tremurul GPS pe loc
+    if(!prev){ S.trail.push(pt); save(); drawTrail(); }
+    else{
+      const d=haversine(prev,pt);
+      if(d>=minMove){
+        if(d<250) S.gpsMeters+=d; // >250m = gaură între sesiuni, nu km reali
+        S.trail.push(pt); if(S.trail.length>3000) S.trail.splice(0,S.trail.length-3000);
+        save(); drawTrail();
+      }
+    }
+  }
+  GPS.last=pt; GPS.lastFixTs=t;
+  updateMapPos(pt); updateGpsUI();
+  if(window.setGlobeMarker) window.setGlobeMarker(pt[0],pt[1]);
+}
+
+/* ---------- Harta reală (Leaflet) ---------- */
+let map=null, catMarker=null, trailLayer=null, mapReady=false, firstFix=true;
+function initLeaflet(){
+  const el=$('map'); if(!el) return;
+  if(typeof L==='undefined'){ el.innerHTML='<div style="display:grid;place-items:center;height:100%;font-size:13px;color:var(--ink-soft)">Harta nu s-a putut încărca 😿</div>'; return; }
+  map=L.map('map',{zoomControl:false});
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
+  L.control.zoom({position:'bottomright'}).addTo(map);
+  trailLayer=L.layerGroup().addTo(map);
+  mapReady=true;
+  drawTrail();
+  const last=S.trail.length?S.trail[S.trail.length-1]:null;
+  if(last){ map.setView(last,15); firstFix=false; placeCat(last); }
+  else map.setView([45.94,24.97],6); // România, până avem un fix
+}
+function placeCat(pt){
+  if(!mapReady) return;
+  if(!catMarker) catMarker=L.marker(pt,{icon:L.divIcon({className:'cat-pin',html:'🐈‍⬛',iconSize:[30,30],iconAnchor:[15,15]})}).addTo(map);
+  else catMarker.setLatLng(pt);
+}
+function drawTrail(){
+  if(!mapReady) return;
+  trailLayer.clearLayers();
+  let seg=[];
+  const flush=()=>{ if(seg.length>1) L.polyline(seg,{color:'#ff2d87',weight:4,opacity:.85,lineJoin:'round',lineCap:'round'}).addTo(trailLayer); seg=[]; };
+  for(const p of S.trail){ if(seg.length && haversine(seg[seg.length-1],p)>300) flush(); seg.push(p); } // gaură mare = segment nou
+  flush();
+}
+function updateMapPos(pt){
+  if(!mapReady) return;
+  placeCat(pt);
+  if(firstFix){ firstFix=false; map.setView(pt,16); }
+  else if(!map.getBounds().contains(pt)) map.panTo(pt);
+}
+function updateGpsUI(){
+  const note=$('gpsNote'); if(!note) return;
+  note.classList.remove('drive');
+  if(GPS.driving){ note.classList.add('drive'); note.textContent='🚗 Viteză de vehicul ('+(GPS.speed*3.6).toFixed(0)+' km/h) — pașii NU se numără acum, ca să rămână corecți.'; }
+  else if(GPS.denied){ note.textContent='⚠️ Locație refuzată — numărăm doar din senzor (în mașină pașii pot fi umflați). Permite locația pentru traseu + precizie.'; }
+  else if(GPS.watchId!=null && GPS.ok){ note.textContent='📡 GPS activ — îți desenăm traseul pe hartă în timp ce mergi 💖'; }
+  else if(GPS.watchId!=null){ note.textContent='📡 Caut semnal GPS…'; }
+  else{ note.textContent='Apasă „Pornește" sus — pornim și GPS-ul: traseu pe hartă + protecție anti-mașină 🚗'; }
+  $('gpsKm').textContent=(S.gpsMeters/1000).toFixed(1).replace('.',',');
+  $('gpsSpeed').textContent=(GPS.watchId!=null && GPS.ok)?(GPS.speed*3.6).toFixed(1).replace('.',','):'—';
+  $('trailPts').textContent=fmt(S.trail.length);
 }
 
 /* ---------- XP & Levels ---------- */
@@ -816,7 +956,7 @@ function render(){
   $('mins').textContent=fmt(activeMin());
 
   renderMascot(); renderQuests(); renderLeague(); renderJourney();
-  renderStreak(); renderChart(); renderXp(); renderBadges();
+  renderStreak(); renderChart(); renderXp(); renderBadges(); updateGpsUI();
 }
 function renderMascot(){
   const {st,idx}=stageOf(S.total);
@@ -994,7 +1134,7 @@ function syncPresets(){ const v=+$('goalInput').value; document.querySelectorAll
 document.querySelectorAll('.preset').forEach(p=>p.onclick=()=>{ $('goalInput').value=p.dataset.v; syncPresets(); });
 $('sensInput').oninput=()=>{ $('sensVal').textContent=(+$('sensInput').value/10).toFixed(1).replace('.',','); };
 $('goalSave').onclick=()=>{ const g=Math.max(500,Math.round(+$('goalInput').value||8000)); S.goal=g; S.sensitivity=+$('sensInput').value/10; if(getToday()>=S.goal&&!wasGoalHit(todayKey())) markGoalHit(); save(); closeModal('goalModal'); render(); toast('🎯','Țintă: '+fmt(g)+' pași!'); };
-$('resetBtn').onclick=()=>{ if(confirm('Sigur ștergi TOATE datele? (pași, pisicuță, serii, realizări)')){ localStorage.removeItem('pasiroz'); localStorage.removeItem(HITKEY); S=JSON.parse(JSON.stringify(DEFAULTS)); celebratedToday=false; save(); closeModal('goalModal'); applyTheme(); render(); maybeAskName(); toast('🧹','Gata, am luat-o de la zero!'); } };
+$('resetBtn').onclick=()=>{ if(confirm('Sigur ștergi TOATE datele? (pași, pisicuță, serii, realizări)')){ localStorage.removeItem('pasiroz'); localStorage.removeItem(HITKEY); S=JSON.parse(JSON.stringify(DEFAULTS)); celebratedToday=false; save(); closeModal('goalModal'); applyTheme(); drawTrail(); render(); maybeAskName(); toast('🧹','Gata, am luat-o de la zero!'); } };
 
 /* Add modal */
 $('openAdd').onclick=()=>openModal('addModal'); $('addCancel').onclick=()=>closeModal('addModal');
@@ -1049,9 +1189,47 @@ setInterval(()=>{ if(todayKey()!==lastDay){ lastDay=todayKey(); celebratedToday=
 
 /* ---------- Init ---------- */
 function maybeAskName(){ if(!S.cat.set) openModal('nameModal'); }
-preloadCats(); preloadAcc(); applyTheme(); recomputeStreak(); celebratedToday=wasGoalHit(todayKey()); render();
+preloadCats(); preloadAcc(); applyTheme(); recomputeStreak(); celebratedToday=wasGoalHit(todayKey()); initLeaflet(); render();
 setTimeout(maybeAskName,500);
 setTimeout(()=>{ if(getToday()===0 && S.cat.set) toast('💖','Apasă „Pornește" și hai la plimbare!'); },900);
+</script>
+
+<script type="module">
+/* Glob 3D (cobe) — punct roz pe locația ta reală. Dacă CDN-ul/WebGL pică, îl ascundem grațios. */
+try{
+  const createGlobe=(await import('https://cdn.jsdelivr.net/npm/cobe@0.6.3/+esm')).default;
+  const canvas=document.getElementById('globe');
+  let markerLoc=[45.94,24.97], hasFix=false;
+  const toAngles=(lat,lng)=>[Math.PI-((lng*Math.PI)/180-Math.PI/2),(lat*Math.PI)/180];
+  let phi=0, theta=0.25, targetPhi=null, targetTheta=null;
+  window.setGlobeMarker=(lat,lng)=>{
+    markerLoc=[lat,lng]; hasFix=true;
+    const a=toAngles(lat,lng); targetPhi=a[0]; targetTheta=a[1];
+    const cap=document.getElementById('globeCap'); if(cap) cap.innerHTML='Aici ești <b>tu</b> pe glob 💖';
+  };
+  // dacă avem deja traseu salvat, țintim globul pe ultimul punct
+  try{ if(typeof S!=='undefined' && S.trail && S.trail.length){ const p=S.trail[S.trail.length-1]; window.setGlobeMarker(p[0],p[1]); } }catch(e){}
+  createGlobe(canvas,{
+    devicePixelRatio:2, width:340, height:340, phi:0, theta:0.25, dark:0, diffuse:1.2,
+    mapSamples:14000, mapBrightness:5, opacity:0.95,
+    baseColor:[1,0.86,0.94], markerColor:[0.94,0.05,0.5], glowColor:[1,0.78,0.9],
+    markers:[],
+    onRender:(state)=>{
+      if(targetPhi!=null){ // ne rotim lin spre locația ta
+        phi+=(targetPhi-phi)*0.06; theta+=(targetTheta-theta)*0.06;
+        if(Math.abs(targetPhi-phi)<0.005){ targetPhi=null; targetTheta=null; }
+      } else if(!hasFix){ phi+=0.005; }           // fără fix: învârtire lentă
+      else{ phi+=Math.sin(Date.now()/2800)*0.0012; } // cu fix: legănare blândă pe loc
+      state.phi=phi; state.theta=theta;
+      state.markers=[{location:markerLoc,size:hasFix?0.09:0.05}];
+    }
+  });
+  const cap=document.getElementById('globeCap');
+  if(cap && !hasFix) cap.innerHTML='Globul tău — pornește senzorul ca să te găsim 🌍';
+}catch(e){
+  const w=document.querySelector('.globe-wrap'); if(w) w.style.display='none';
+  const cap=document.getElementById('globeCap'); if(cap) cap.style.display='none';
+}
 </script>
 </body>
 </html>
