@@ -93,12 +93,14 @@ body{
 
 /* Mascot card */
 .mascot-card{background:linear-gradient(150deg,#fff,#fff0f8);border-radius:26px;padding:18px;box-shadow:var(--shadow);border:2px solid #ffe1f0;text-align:center}
-.cat-stage{position:relative;width:118px;height:118px;margin:2px auto 6px;cursor:pointer;user-select:none}
-.cat-platform{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:84px;height:18px;background:radial-gradient(closest-side,rgba(255,45,135,.22),transparent);border-radius:50%}
-.cat-face{position:absolute;inset:0;display:grid;place-items:center;font-size:74px;transition:transform .2s;animation:bob 3.4s ease-in-out infinite}
+.cat-stage{position:relative;width:150px;height:150px;margin:2px auto 6px;cursor:pointer;user-select:none}
+.cat-platform{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:104px;height:20px;background:radial-gradient(closest-side,rgba(255,45,135,.22),transparent);border-radius:50%}
+.cat-face{position:absolute;inset:0;display:grid;place-items:center;font-size:92px;transition:transform .2s;animation:bob 3.4s ease-in-out infinite}
+.cat-face img{filter:drop-shadow(0 6px 8px rgba(214,24,107,.22))}
 .cat-face.pet{animation:wiggle .5s}
 @keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-12deg) scale(1.08)}75%{transform:rotate(12deg) scale(1.08)}}
-.cat-acc{position:absolute;top:-2px;left:50%;transform:translateX(-50%);font-size:34px;pointer-events:none;z-index:2;filter:drop-shadow(0 2px 3px rgba(214,24,107,.3))}
+.cat-acc{position:absolute;top:-2px;left:50%;transform:translateX(-50%);width:58px;height:58px;display:grid;place-items:center;font-size:34px;pointer-events:none;z-index:2;filter:drop-shadow(0 2px 3px rgba(214,24,107,.3))}
+.cat-acc img{width:100%;height:100%;object-fit:contain}
 .cat-name{font-family:'Baloo 2';font-weight:800;font-size:22px;color:var(--pink-3);display:inline-flex;align-items:center;gap:6px}
 .cat-name .edit{font-size:14px;opacity:.7;cursor:pointer}
 .cat-stagename{font-size:13px;font-weight:600;color:var(--ink-soft);margin-top:1px}
@@ -275,9 +277,9 @@ body{
 
 <div class="app">
   <div class="topbar">
-    <div class="brand"><span class="logo">💖</span>PașiRoz</div>
-    <div class="chip">💗 <b id="coinsChip">0</b></div>
-    <div class="chip">⭐ <b id="lvlChip">1</b></div>
+    <div class="brand"><span class="logo">💖</span><span id="brandName">PașiRoz</span></div>
+    <div class="chip" id="coinsChipBox" style="cursor:pointer">💗 <b id="coinsChip">0</b></div>
+    <div class="chip" id="lvlChipBox" style="cursor:pointer">⭐ <b id="lvlChip">1</b></div>
     <button class="icon-btn" id="openSettings" aria-label="Setări">⚙️</button>
   </div>
 
@@ -502,6 +504,17 @@ body{
   </div>
 </div>
 
+<!-- Info modal (realizări + chips) -->
+<div class="modal-bg centered" id="infoModal">
+  <div class="modal center">
+    <div id="infoIcon" style="text-align:center;font-size:56px;margin-bottom:2px;animation:bob 3s infinite"></div>
+    <h3 style="justify-content:center" id="infoTitle"></h3>
+    <p class="hint" style="text-align:center" id="infoText"></p>
+    <div id="infoStatus" class="lock-note" style="display:none"></div>
+    <div class="btn-row"><button class="btn btn-pink btn-block" id="infoClose">Am înțeles 💖</button></div>
+  </div>
+</div>
+
 <canvas id="confetti"></canvas>
 <div class="celebrate" id="celebrate"><div class="box"><div class="big-em" id="celEm">🎉</div><h2 id="celTitle">Țintă atinsă!</h2><p id="celSub">Ești o vedetă 💖</p></div></div>
 <div class="toast" id="toast"><span class="te" id="toastEm">💖</span><span id="toastMsg"></span></div>
@@ -547,16 +560,40 @@ function weekSteps(offset){ // 0 = this week, 1 = last week
   return t;
 }
 
-/* ---------- Step engine ---------- */
-const engine={ active:false, grav:[0,0,0], lastPeak:0, above:false, gotData:false, lastStepTs:0, MIN_INTERVAL:260 };
+/* ---------- Step engine ----------
+   Detecție reală de mers: filtru gravitație + magnitudine liniară netezită,
+   prag DINAMIC (mijlocul între min/max recent) + amplitudine minimă +
+   confirmare de CADENȚĂ (min 3 pași ritmici) => nu mai numără tremurături pe scaun. */
+const STEP={ MIN_INT:270, MAX_INT:1800, WIN:1400, PRIME:3, BASE_AMP:1.6 };
+const engine={ active:false, gotData:false, lastStepTs:0,
+  g:[0,0,0], sm:0, prev:null, buf:[], lastCross:0, cadence:[], primed:false };
+function resetEngine(){ engine.g=[0,0,0]; engine.sm=0; engine.prev=null; engine.buf=[]; engine.lastCross=0; engine.cadence=[]; engine.primed=false; }
 function handleMotion(e){
   const a=e.accelerationIncludingGravity||e.acceleration; if(!a||a.x==null) return;
-  engine.gotData=true; const al=0.8;
-  engine.grav[0]=al*engine.grav[0]+(1-al)*a.x; engine.grav[1]=al*engine.grav[1]+(1-al)*a.y; engine.grav[2]=al*engine.grav[2]+(1-al)*a.z;
-  const lx=a.x-engine.grav[0], ly=a.y-engine.grav[1], lz=a.z-engine.grav[2];
-  const mag=Math.sqrt(lx*lx+ly*ly+lz*lz), now=performance.now(), T=S.sensitivity;
-  if(mag>T && !engine.above && (now-engine.lastPeak)>engine.MIN_INTERVAL){ engine.above=true; engine.lastPeak=now; onStep(); }
-  else if(mag<T*0.55){ engine.above=false; }
+  engine.gotData=true; const t=performance.now(), al=0.8;
+  engine.g[0]=al*engine.g[0]+(1-al)*a.x; engine.g[1]=al*engine.g[1]+(1-al)*a.y; engine.g[2]=al*engine.g[2]+(1-al)*a.z;
+  const lx=a.x-engine.g[0], ly=a.y-engine.g[1], lz=a.z-engine.g[2];
+  const mag=Math.sqrt(lx*lx+ly*ly+lz*lz);
+  engine.sm=0.7*engine.sm+0.3*mag;           // netezire ca să tai zgomotul senzorului
+  detectStep(engine.sm,t);
+}
+function detectStep(v,t){
+  const e=engine;
+  e.buf.push([t,v]); while(e.buf.length && t-e.buf[0][0]>STEP.WIN) e.buf.shift();
+  let mn=Infinity,mx=-Infinity; for(const b of e.buf){ if(b[1]<mn)mn=b[1]; if(b[1]>mx)mx=b[1]; }
+  const amp=mx-mn, dynThr=(mn+mx)/2, minAmp=STEP.BASE_AMP*S.sensitivity;
+  if(amp<minAmp){ e.primed=false; e.cadence.length=0; e.prev=v; return; } // prea puțină mișcare = NU e mers
+  if(e.prev!=null && e.prev<=dynThr && v>dynThr){   // trecere ascendentă peste pragul dinamic = candidat de pas
+    const dt=t-e.lastCross; e.lastCross=t;
+    if(dt>=STEP.MIN_INT && dt<=STEP.MAX_INT){
+      e.cadence.push(t); while(e.cadence.length && t-e.cadence[0]>4500) e.cadence.shift();
+      if(e.cadence.length>=STEP.PRIME){
+        if(!e.primed){ e.primed=true; for(let i=1;i<STEP.PRIME;i++) onStep(); } // recuperez pașii de „încălzire"
+        onStep();
+      }
+    } else if(dt>STEP.MAX_INT){ e.cadence=[t]; e.primed=false; } // ritm rupt => o iau de la capăt
+  }
+  e.prev=v;
 }
 let pendingDraw=false;
 function onStep(){
@@ -571,7 +608,7 @@ async function startSensor(){
     }
     if(typeof DeviceMotionEvent==='undefined'){ sensorState('unsupported'); return; }
     window.addEventListener('devicemotion',handleMotion,{passive:true});
-    engine.active=true; engine.gotData=false; sensorState('live');
+    resetEngine(); engine.active=true; engine.gotData=false; sensorState('live');
     setTimeout(()=>{ if(engine.active&&!engine.gotData) sensorState('nodata'); },1800);
   }catch(err){ sensorState('error'); }
 }
@@ -596,6 +633,10 @@ function xpForLevel(lv){ return 100+(lv-1)*120; }
 function levelInfo(){ let lv=1,xp=S.xp; while(xp>=xpForLevel(lv)){ xp-=xpForLevel(lv); lv++; } return {lv,cur:xp,need:xpForLevel(lv)}; }
 function addXp(n){ const b=levelInfo().lv; S.xp+=n; const a=levelInfo().lv; if(a>b){ S.coins+=10; toast('🌟','Nivel '+a+'! +10 💗'); burst(); } }
 
+/* ---------- Brand (nume = {nume pisică} Steps) ---------- */
+function brandName(){ return S.cat.name ? (S.cat.name+' Steps') : 'PașiRoz'; }
+function updateBrand(){ const n=brandName(); const el=$('brandName'); if(el) el.textContent=n; document.title=n+' 💖'; }
+
 /* ---------- Mascot stages ---------- */
 const STAGES=[
   {min:0,     face:'🐱', name:'Pisoi bebe'},
@@ -606,6 +647,10 @@ const STAGES=[
   {min:400000,face:'🦄', name:'Pisica Legendară ✨'},
 ];
 function stageOf(total){ let s=STAGES[0],idx=0; STAGES.forEach((st,i)=>{ if(total>=st.min){s=st;idx=i;} }); return {st:s,idx}; }
+
+/* ---------- Cat sprites (cat/cat-1.png ... cat-6.png, fallback la emoji) ---------- */
+const CAT_IMG={}; // idx -> src (dacă imaginea există) sau false
+function preloadCats(){ for(let i=0;i<STAGES.length;i++){ (function(i){ const img=new Image(); img.onload=()=>{ CAT_IMG[i]=img.src; if(stageOf(S.total).idx===i) renderMascot(); }; img.onerror=()=>{ CAT_IMG[i]=false; }; img.src='cat/cat-'+(i+1)+'.png'; })(i); } }
 
 /* ---------- Mood ---------- */
 function moodFace(){
@@ -631,14 +676,19 @@ function moodMsg(){
 }
 
 /* ---------- Shop items ---------- */
+/* Toate se poartă pe CAP (ancorate sus-centru). top = offset vertical, sc = scală. */
 const ACCESSORIES=[
-  {id:'none', ico:'🚫', emoji:'', name:'Fără', cost:0},
-  {id:'bow',  ico:'🎀', emoji:'🎀', name:'Fundiță', cost:50},
-  {id:'flower',ico:'🌸',emoji:'🌸', name:'Floare', cost:60},
-  {id:'glasses',ico:'🕶️',emoji:'🕶️',name:'Ochelari', cost:80},
-  {id:'hat',  ico:'👒', emoji:'👒', name:'Pălărie', cost:100},
-  {id:'crown',ico:'👑', emoji:'👑', name:'Coroană', cost:250},
+  {id:'none',      ico:'🚫', emoji:'',   name:'Fără',        cost:0,   top:0,  sc:1},
+  {id:'bow',       ico:'🎀', emoji:'🎀', name:'Fundiță roz', cost:50,  top:-4, sc:1},
+  {id:'flower',    ico:'🌷', emoji:'🌷', name:'Coroniță flori',cost:90,top:-8, sc:1.15},
+  {id:'headphones',ico:'🎧', emoji:'🎧', name:'Căști roz',   cost:130, top:2,  sc:1.25},
+  {id:'partyhat',  ico:'🎉', emoji:'🎉', name:'Pălărie petrecere',cost:160,top:-14,sc:1.1},
+  {id:'witch',     ico:'🧙‍♀️',emoji:'🧙‍♀️',name:'Pălărie vrăjitoare',cost:200,top:-16,sc:1.2},
+  {id:'tiara',     ico:'👑', emoji:'👑', name:'Coroniță aurie',cost:280,top:-10,sc:1},
+  {id:'halo',      ico:'😇', emoji:'😇', name:'Aureolă îngeraș',cost:350,top:-18,sc:1.1},
 ];
+const ACC_IMG={}; // id -> src sau false
+function preloadAcc(){ ACCESSORIES.forEach(a=>{ if(a.id==='none') return; const img=new Image(); img.onload=()=>{ ACC_IMG[a.id]=img.src; if(S.equipAcc===a.id) renderMascot(); }; img.onerror=()=>{ ACC_IMG[a.id]=false; }; img.src='acc/'+a.id+'.png'; }); }
 const THEMES=[
   {id:'pastel', ico:'🌸', name:'Roz Pastel', cost:0},
   {id:'fucsia', ico:'💖', name:'Fucsia', cost:120},
@@ -666,18 +716,18 @@ function checkQuests(){
 
 /* ---------- Badges ---------- */
 const BADGES=[
-  {id:'first',ico:'👣',name:'Primii pași',test:()=>getToday()>=100},
-  {id:'k1',ico:'🌸',name:'1.000 azi',test:()=>getToday()>=1000},
-  {id:'goal',ico:'🎯',name:'Țintă atinsă',test:()=>getToday()>=S.goal},
-  {id:'k10',ico:'🏃‍♀️',name:'10.000!',test:()=>getToday()>=10000},
-  {id:'k20',ico:'🦄',name:'20.000 legendă',test:()=>getToday()>=20000},
-  {id:'streak3',ico:'🔥',name:'3 zile la rând',test:()=>S.streak>=3},
-  {id:'streak7',ico:'👑',name:'Săptămână plină',test:()=>S.streak>=7},
-  {id:'lv5',ico:'⭐',name:'Nivel 5',test:()=>levelInfo().lv>=5},
-  {id:'lv10',ico:'💎',name:'Nivel 10',test:()=>levelInfo().lv>=10},
-  {id:'total100k',ico:'🏅',name:'100k total',test:()=>S.total>=100000},
-  {id:'traveler',ico:'🗺️',name:'Călător',test:()=>S.total*STEP_M>=30},
-  {id:'shopper',ico:'🛍️',name:'Cumpărător',test:()=>S.owned.length>4},
+  {id:'first',ico:'👣',name:'Primii pași',test:()=>getToday()>=100,hint:()=>'Fă 100 de pași într-o singură zi.',prog:()=>[getToday(),100]},
+  {id:'k1',ico:'🌸',name:'1.000 azi',test:()=>getToday()>=1000,hint:()=>'Fă 1.000 de pași într-o singură zi.',prog:()=>[getToday(),1000]},
+  {id:'goal',ico:'🎯',name:'Țintă atinsă',test:()=>getToday()>=S.goal,hint:()=>'Atinge-ți ținta zilnică (acum '+fmt(S.goal)+' pași).',prog:()=>[getToday(),S.goal]},
+  {id:'k10',ico:'🏃‍♀️',name:'10.000!',test:()=>getToday()>=10000,hint:()=>'Fă 10.000 de pași într-o singură zi.',prog:()=>[getToday(),10000]},
+  {id:'k20',ico:'🦄',name:'20.000 legendă',test:()=>getToday()>=20000,hint:()=>'Fă 20.000 de pași într-o singură zi.',prog:()=>[getToday(),20000]},
+  {id:'streak3',ico:'🔥',name:'3 zile la rând',test:()=>S.streak>=3,hint:()=>'Atinge-ți ținta zilnică 3 zile la rând.',prog:()=>[S.streak,3]},
+  {id:'streak7',ico:'👑',name:'Săptămână plină',test:()=>S.streak>=7,hint:()=>'Atinge-ți ținta 7 zile consecutive.',prog:()=>[S.streak,7]},
+  {id:'lv5',ico:'⭐',name:'Nivel 5',test:()=>levelInfo().lv>=5,hint:()=>'Ajungi la nivelul 5 (1 pas = 1 XP).',prog:()=>[levelInfo().lv,5]},
+  {id:'lv10',ico:'💎',name:'Nivel 10',test:()=>levelInfo().lv>=10,hint:()=>'Ajungi la nivelul 10.',prog:()=>[levelInfo().lv,10]},
+  {id:'total100k',ico:'🏅',name:'100k total',test:()=>S.total>=100000,hint:()=>'Fă 100.000 de pași în total (deblochează și schimbarea numelui pisicii!).',prog:()=>[S.total,100000]},
+  {id:'traveler',ico:'🗺️',name:'Călător',test:()=>S.total*STEP_M>=30,hint:()=>'Mergi 30 km în total — vezi „Călătoria în lume".',prog:()=>[S.total*STEP_M,30]},
+  {id:'shopper',ico:'🛍️',name:'Cumpărător',test:()=>S.owned.length>4,hint:()=>'Cumpără primul obiect din Magazin 🛍️.',prog:()=>[Math.max(0,S.owned.length-4),1]},
 ];
 function checkBadges(){ BADGES.forEach(b=>{ if(!S.badges.includes(b.id)&&b.test()){ S.badges.push(b.id); toast(b.ico,'Realizare: '+b.name+'!'); burst(); save(); } }); }
 
@@ -736,6 +786,7 @@ function journeyInfo(){
 /* ---------- Render ---------- */
 const CIRC=2*Math.PI*108;
 function render(){
+  updateBrand();
   const steps=getToday(), goal=S.goal, pct=goal>0?steps/goal*100:0;
   $('stepsNum').textContent=fmt(steps);
   $('goalTxt').textContent=fmt(goal);
@@ -754,10 +805,16 @@ function render(){
 }
 function renderMascot(){
   const {st,idx}=stageOf(S.total);
-  $('catFace').textContent=st.face;
+  const catSrc=CAT_IMG[idx];
+  if(catSrc){ $('catFace').innerHTML='<img src="'+catSrc+'" alt="'+st.name+'" draggable="false" style="width:100%;height:100%;object-fit:contain;pointer-events:none">'; }
+  else { $('catFace').textContent=st.face; }
   $('catStageName').textContent=st.name;
   const acc=ACCESSORIES.find(a=>a.id===S.equipAcc)||ACCESSORIES[0];
-  $('catAcc').textContent=acc.emoji||'';
+  const accEl=$('catAcc'), accSrc=ACC_IMG[acc.id];
+  if(acc.id==='none'){ accEl.innerHTML=''; }
+  else if(accSrc){ accEl.innerHTML='<img src="'+accSrc+'" alt="" draggable="false" style="width:100%;height:100%;object-fit:contain">'; }
+  else { accEl.textContent=acc.emoji||''; }
+  accEl.style.top=(acc.top||0)+'px'; accEl.style.transform='translateX(-50%) scale('+(acc.sc||1)+')';
   const nm=S.cat.name||'Pisicuța';
   $('catName').innerHTML=nm+' <span class="edit" id="renameTrigger">✏️</span>';
   $('renameTrigger').onclick=openRename;
@@ -817,7 +874,7 @@ function renderJourney(){
     el.innerHTML=`<div class="lc">${L.em}</div><div class="ll">${L.name}</div>`;
     legs.appendChild(el);
   });
-  const cur=legs.querySelector('.leg.current'); if(cur) cur.scrollIntoView({inline:'center',block:'nearest'});
+  const cur=legs.querySelector('.leg.current'); if(cur){ legs.scrollLeft=cur.offsetLeft-legs.clientWidth/2+cur.clientWidth/2; }
   $('funFact').textContent=FUN_FACTS[hashStr(todayKey())%FUN_FACTS.length](Math.max(0.1,j.km));
 }
 function renderStreak(){
@@ -840,7 +897,22 @@ function renderChart(){
   });
 }
 function renderXp(){ const li=levelInfo(); $('lvlChip').textContent=li.lv; $('xpLvl').textContent=li.lv; $('xpTxt').textContent=li.cur+' / '+li.need+' XP'; $('xpFill').style.width=(li.cur/li.need*100)+'%'; }
-function renderBadges(){ const wrap=$('badges'); wrap.innerHTML=''; BADGES.forEach(b=>{ const un=S.badges.includes(b.id); const el=document.createElement('div'); el.className='badge'+(un?' unlocked':''); el.innerHTML=`<div class="b-ico">${b.ico}</div><div class="b-name">${b.name}</div>`; wrap.appendChild(el); }); $('badgeCount').textContent='('+S.badges.length+'/'+BADGES.length+')'; }
+function renderBadges(){ const wrap=$('badges'); wrap.innerHTML=''; BADGES.forEach(b=>{ const un=S.badges.includes(b.id); const el=document.createElement('div'); el.className='badge'+(un?' unlocked':''); el.innerHTML=`<div class="b-ico">${b.ico}</div><div class="b-name">${b.name}</div>`; el.style.cursor='pointer'; el.onclick=()=>showBadge(b); wrap.appendChild(el); }); $('badgeCount').textContent='('+S.badges.length+'/'+BADGES.length+')'; }
+function showBadge(b){
+  const un=S.badges.includes(b.id);
+  let status;
+  if(un){ status='✅ <b>Obținut!</b> Bravo 🎉'; }
+  else { const [cur,tgt]=b.prog(); const pc=Math.min(100,cur/tgt*100).toFixed(0);
+    status='🔒 <b>De obținut:</b> '+fmt(Math.min(cur,tgt))+' / '+fmt(tgt)+' ('+pc+'%)'; }
+  openInfo(b.ico,b.name,b.hint(),status);
+}
+
+/* ---------- Info modal ---------- */
+function openInfo(icon,title,text,status){
+  $('infoIcon').textContent=icon; $('infoTitle').textContent=title; $('infoText').textContent=text;
+  const st=$('infoStatus'); if(status){ st.style.display='block'; st.innerHTML=status; } else st.style.display='none';
+  openModal('infoModal');
+}
 
 /* ---------- Celebration / confetti / sound ---------- */
 function celebrate(){ const c=$('celebrate'); $('celEm').textContent='🎉'; $('celTitle').textContent='Țintă atinsă! 🎯'; $('celSub').textContent=fmt(getToday())+' pași azi · +25 💗'; c.classList.add('show'); ping(880); setTimeout(()=>ping(1320),120); setTimeout(()=>ping(1760),240); burst(180); setTimeout(()=>c.classList.remove('show'),2600); }
@@ -925,7 +997,8 @@ function renderShop(){
     const owned=it.cost===0||S.owned.includes(it.id);
     const equipped=shopTab==='acc'?(S.equipAcc===it.id):(S.theme===it.id);
     const el=document.createElement('div'); el.className='shop-item'+(owned?' owned':'')+(equipped?' equipped':'');
-    el.innerHTML=`<div class="si-ico">${it.ico}</div><div class="si-name">${it.name}</div><div class="si-cost">${owned?(equipped?'✓ portat':'deține'):'💗 '+it.cost}</div>`;
+    const icoHtml=(shopTab==='acc'&&ACC_IMG[it.id])?`<img src="${ACC_IMG[it.id]}" alt="" style="width:34px;height:34px;object-fit:contain">`:it.ico;
+    el.innerHTML=`<div class="si-ico">${icoHtml}</div><div class="si-name">${it.name}</div><div class="si-cost">${owned?(equipped?'✓ portat':'deține'):'💗 '+it.cost}</div>`;
     el.onclick=()=>shopClick(it,owned);
     grid.appendChild(el);
   });
@@ -939,8 +1012,15 @@ function shopClick(it,owned){
   save(); renderShop(); render();
 }
 
+/* Info modal + chips */
+$('infoClose').onclick=()=>closeModal('infoModal');
+$('coinsChipBox').onclick=()=>openInfo('💗','Inimioare','Moneda din aplicație. Le câștigi când îți atingi ținta zilnică și când termini provocări. Le cheltui în Magazin 🛍️ pe accesorii pentru pisică și teme.');
+$('lvlChipBox').onclick=()=>openInfo('⭐','Nivelul tău','Crește din experiență (XP). Fiecare pas îți dă 1 XP. La fiecare nivel nou primești +10 inimioare 💗 bonus.');
+
 /* Pet the cat */
-$('catStage').onclick=()=>{ const f=$('catFace'); f.classList.remove('pet'); void f.offsetWidth; f.classList.add('pet'); const old=f.textContent; f.textContent='😻'; purr(); if(Math.random()<0.5) burst(18); setTimeout(()=>{ f.textContent=stageOf(S.total).st.face; },700); };
+$('catStage').onclick=()=>{ const f=$('catFace'); f.classList.remove('pet'); void f.offsetWidth; f.classList.add('pet'); purr(); if(Math.random()<0.5) burst(18);
+  const idx=stageOf(S.total).idx;
+  if(!CAT_IMG[idx]){ f.textContent='😻'; setTimeout(()=>{ f.textContent=stageOf(S.total).st.face; },700); } };
 
 /* Start/stop */
 $('startBtn').onclick=function(){ if(this.dataset.on==='1') stopSensor(); else startSensor(); try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); }catch(e){} };
@@ -951,7 +1031,7 @@ setInterval(()=>{ if(todayKey()!==lastDay){ lastDay=todayKey(); celebratedToday=
 
 /* ---------- Init ---------- */
 function maybeAskName(){ if(!S.cat.set) openModal('nameModal'); }
-applyTheme(); recomputeStreak(); celebratedToday=wasGoalHit(todayKey()); render();
+preloadCats(); preloadAcc(); applyTheme(); recomputeStreak(); celebratedToday=wasGoalHit(todayKey()); render();
 setTimeout(maybeAskName,500);
 setTimeout(()=>{ if(getToday()===0 && S.cat.set) toast('💖','Apasă „Pornește" și hai la plimbare!'); },900);
 </script>
