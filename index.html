@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#ff5fa2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>PașiRoz 💖 Pedometru</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pink-1:#ff8fc7; --pink-2:#ff5fa2; --pink-3:#ff2d87; --pink-deep:#d6186b;
+  --pink-soft:#ffd9ec; --pink-bg-1:#ffe3f1; --pink-bg-2:#ffc2e0;
+  --cream:#fff5fa; --ink:#7a1146; --ink-soft:#b85a8a; --gold:#ffcf4d; --ring-bg:#ffd0e8;
+  --shadow:0 12px 30px rgba(255,45,135,.22); --shadow-lg:0 22px 50px rgba(255,45,135,.30);
+}
+body[data-theme="fucsia"]{
+  --pink-1:#ff5fb0;--pink-2:#ff1d8e;--pink-3:#e30074;--pink-deep:#a8005a;
+  --pink-soft:#ffc6e6;--pink-bg-1:#ffd1ec;--pink-bg-2:#ff9ad2;--ring-bg:#ffbce0;
+}
+body[data-theme="lavanda"]{
+  --pink-1:#d99bff;--pink-2:#c06bff;--pink-3:#a93dff;--pink-deep:#7d1fcf;
+  --pink-soft:#ecd6ff;--pink-bg-1:#f1e3ff;--pink-bg-2:#e0c2ff;--ring-bg:#e6d0ff;--ink:#4a1170;--ink-soft:#8a5ab8;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Fredoka',system-ui,sans-serif;color:var(--ink);
+  background:radial-gradient(120% 80% at 50% -10%, #fff0f8 0%, var(--pink-bg-1) 40%, var(--pink-bg-2) 100%) fixed;
+  min-height:100dvh;overflow-x:hidden;-webkit-font-smoothing:antialiased;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  transition:background .4s;
+}
+.heart-bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.heart-bg span{position:absolute;bottom:-40px;font-size:18px;opacity:.32;animation:floatUp linear infinite;filter:drop-shadow(0 4px 6px rgba(214,24,107,.25))}
+@keyframes floatUp{to{transform:translateY(-115dvh) rotate(40deg);opacity:0}}
+.app{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:14px 16px 116px}
+
+/* Header */
+.topbar{display:flex;align-items:center;gap:8px;margin:6px 2px 14px}
+.brand{display:flex;align-items:center;gap:9px;font-family:'Baloo 2';font-weight:800;font-size:21px;color:var(--pink-3);letter-spacing:.3px;flex:1}
+.brand .logo{width:38px;height:38px;display:grid;place-items:center;background:linear-gradient(135deg,var(--pink-1),var(--pink-3));border-radius:13px;box-shadow:var(--shadow);font-size:20px;animation:beat 2.2s ease-in-out infinite}
+@keyframes beat{0%,100%{transform:scale(1)}12%{transform:scale(1.16)}24%{transform:scale(.97)}36%{transform:scale(1.08)}48%{transform:scale(1)}}
+.chip{display:flex;align-items:center;gap:5px;background:#fff;padding:7px 11px;border-radius:999px;box-shadow:var(--shadow);font-weight:700;font-size:13px;color:var(--ink);white-space:nowrap}
+.chip b{color:var(--pink-3)}
+.icon-btn{width:40px;height:40px;border:none;background:#fff;border-radius:13px;box-shadow:var(--shadow);font-size:18px;display:grid;place-items:center;cursor:pointer;transition:transform .15s;flex:0 0 auto}
+.icon-btn:active{transform:scale(.9)}
+
+/* Ring */
+.ring-card{position:relative;background:linear-gradient(160deg,#fff 0%,#fff4fa 100%);border-radius:34px;padding:22px 20px 20px;box-shadow:var(--shadow-lg);text-align:center;overflow:hidden;border:2px solid #ffe1f0}
+.ring-card::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 50% at 50% 0%, rgba(255,143,199,.20), transparent 70%);pointer-events:none}
+.ring-wrap{position:relative;width:244px;height:244px;margin:4px auto 2px}
+.ring-wrap svg{transform:rotate(-90deg)}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.mood{font-size:42px;line-height:1;margin-bottom:0;animation:bob 3s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.steps-num{font-family:'Baloo 2';font-weight:800;font-size:52px;line-height:1;color:var(--pink-3);letter-spacing:-1px;text-shadow:0 3px 0 #ffd9ec}
+.steps-label{font-size:12px;font-weight:600;color:var(--ink-soft);letter-spacing:2px;text-transform:uppercase;margin-top:4px}
+.goal-line{margin-top:9px;font-size:14px;font-weight:600;color:var(--ink-soft)}
+.goal-line b{color:var(--pink-3)}
+.pct-badge{position:absolute;top:14px;right:16px;background:linear-gradient(135deg,var(--pink-2),var(--pink-3));color:#fff;font-weight:700;font-size:13px;padding:5px 11px;border-radius:999px;box-shadow:0 6px 14px rgba(255,45,135,.35)}
+.bubble{margin-top:13px;font-size:14px;font-weight:500;color:var(--ink);background:#fff0f7;border:1.5px dashed #ffb3d9;border-radius:16px;padding:9px 12px;min-height:20px;position:relative}
+
+/* Sensor */
+.sensor-bar{display:flex;align-items:center;gap:10px;margin:14px 2px 0;background:#fff;border-radius:18px;padding:11px 14px;box-shadow:var(--shadow)}
+.dot{width:11px;height:11px;border-radius:50%;background:#bbb;flex:0 0 auto}
+.dot.live{background:#2ecc71;box-shadow:0 0 0 4px rgba(46,204,113,.18);animation:pulse 1.4s infinite}
+.dot.off{background:#ff5b6e;box-shadow:0 0 0 4px rgba(255,91,110,.18)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(46,204,113,.18)}50%{box-shadow:0 0 0 9px rgba(46,204,113,0)}}
+.sensor-bar .txt{flex:1;font-size:12.5px;font-weight:500;color:var(--ink-soft);line-height:1.25}
+.sensor-bar .txt b{color:var(--ink)}
+.btn{border:none;cursor:pointer;font-family:inherit;font-weight:700;border-radius:14px;transition:transform .14s,box-shadow .2s}
+.btn:active{transform:scale(.94)}
+.btn-pink{background:linear-gradient(135deg,var(--pink-2),var(--pink-3));color:#fff;box-shadow:0 8px 18px rgba(255,45,135,.4)}
+.btn-sm{padding:9px 14px;font-size:13px}
+.btn-ghost{background:#ffe1f0;color:var(--ink)}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-top:14px}
+.stat{background:#fff;border-radius:20px;padding:13px 8px;text-align:center;box-shadow:var(--shadow);border:2px solid #ffe9f4}
+.stat .ico{font-size:20px}
+.stat .v{font-family:'Baloo 2';font-weight:800;font-size:20px;color:var(--pink-3);margin-top:3px;line-height:1}
+.stat .l{font-size:10.5px;font-weight:600;color:var(--ink-soft);margin-top:3px;text-transform:uppercase;letter-spacing:.4px}
+
+.section{margin-top:20px}
+.section-title{display:flex;align-items:center;gap:8px;font-family:'Baloo 2';font-weight:700;font-size:17px;color:var(--ink);margin:0 4px 11px}
+.section-title .em{font-size:19px}
+.section-title .side{margin-left:auto;font-size:12px;font-weight:600;color:var(--ink-soft)}
+.card{background:#fff;border-radius:24px;box-shadow:var(--shadow);border:2px solid #ffe9f4}
+
+/* Mascot card */
+.mascot-card{background:linear-gradient(150deg,#fff,#fff0f8);border-radius:26px;padding:18px;box-shadow:var(--shadow);border:2px solid #ffe1f0;text-align:center}
+.cat-stage{position:relative;width:118px;height:118px;margin:2px auto 6px;cursor:pointer;user-select:none}
+.cat-platform{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:84px;height:18px;background:radial-gradient(closest-side,rgba(255,45,135,.22),transparent);border-radius:50%}
+.cat-face{position:absolute;inset:0;display:grid;place-items:center;font-size:74px;transition:transform .2s;animation:bob 3.4s ease-in-out infinite}
+.cat-face.pet{animation:wiggle .5s}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-12deg) scale(1.08)}75%{transform:rotate(12deg) scale(1.08)}}
+.cat-acc{position:absolute;top:-2px;left:50%;transform:translateX(-50%);font-size:34px;pointer-events:none;z-index:2;filter:drop-shadow(0 2px 3px rgba(214,24,107,.3))}
+.cat-name{font-family:'Baloo 2';font-weight:800;font-size:22px;color:var(--pink-3);display:inline-flex;align-items:center;gap:6px}
+.cat-name .edit{font-size:14px;opacity:.7;cursor:pointer}
+.cat-stagename{font-size:13px;font-weight:600;color:var(--ink-soft);margin-top:1px}
+.evo-track{height:12px;background:var(--ring-bg);border-radius:999px;overflow:hidden;margin:12px 4px 5px;position:relative}
+.evo-fill{height:100%;background:linear-gradient(90deg,var(--pink-1),var(--pink-3));border-radius:999px;width:0;transition:width .8s cubic-bezier(.2,.9,.3,1.2)}
+.evo-cap{font-size:11.5px;font-weight:600;color:var(--ink-soft)}
+.pet-hint{font-size:11px;color:var(--ink-soft);margin-top:8px;opacity:.85}
+
+/* Quests */
+.quest{display:flex;align-items:center;gap:13px;padding:14px 16px}
+.quest+.quest{border-top:1.5px solid #ffe9f4}
+.quest .q-ico{width:44px;height:44px;flex:0 0 auto;border-radius:14px;display:grid;place-items:center;font-size:22px;background:linear-gradient(135deg,#fff0f7,#ffe1f0)}
+.quest .q-mid{flex:1;min-width:0}
+.quest .q-title{font-weight:700;font-size:14px;color:var(--ink)}
+.quest .q-bar{height:8px;background:var(--ring-bg);border-radius:999px;overflow:hidden;margin-top:7px}
+.quest .q-fill{height:100%;background:linear-gradient(90deg,var(--pink-1),var(--pink-3));border-radius:999px;transition:width .7s}
+.quest .q-sub{font-size:11px;color:var(--ink-soft);margin-top:5px}
+.quest .q-reward{flex:0 0 auto;text-align:center;font-weight:800;font-size:13px;color:var(--pink-3)}
+.quest.done .q-reward{color:#2ecc71}
+.quest.done .q-ico{background:linear-gradient(135deg,#d6ffe6,#aef0c8)}
+
+/* League */
+.league-card{padding:18px}
+.rank-row{display:flex;align-items:center;gap:14px}
+.rank-medal{width:62px;height:62px;flex:0 0 auto;border-radius:18px;display:grid;place-items:center;font-size:32px;box-shadow:var(--shadow)}
+.rank-info{flex:1}
+.rank-name{font-family:'Baloo 2';font-weight:800;font-size:20px;color:var(--pink-3);line-height:1}
+.rank-sub{font-size:12.5px;color:var(--ink-soft);margin-top:3px}
+.rank-bar{height:12px;background:var(--ring-bg);border-radius:999px;overflow:hidden;margin-top:13px}
+.rank-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--pink-1),var(--pink-3));transition:width .8s}
+.vs-row{display:flex;gap:11px;margin-top:14px}
+.vs-box{flex:1;background:#fff0f7;border-radius:16px;padding:11px;text-align:center}
+.vs-box .vl{font-size:11px;font-weight:600;color:var(--ink-soft)}
+.vs-box .vv{font-family:'Baloo 2';font-weight:800;font-size:18px;color:var(--pink-3);margin-top:2px}
+.vs-delta{margin-top:10px;text-align:center;font-size:13px;font-weight:600}
+.vs-delta.up{color:#2ecc71}.vs-delta.down{color:#ff5b6e}
+
+/* Journey */
+.journey-card{padding:18px}
+.journey-now{display:flex;align-items:center;gap:13px;margin-bottom:6px}
+.journey-emoji{font-size:38px}
+.journey-txt{flex:1}
+.journey-txt .jn{font-family:'Baloo 2';font-weight:800;font-size:17px;color:var(--ink);line-height:1.1}
+.journey-txt .js{font-size:12.5px;color:var(--ink-soft);margin-top:3px}
+.journey-bar{height:12px;background:var(--ring-bg);border-radius:999px;overflow:hidden;margin:12px 0 6px;position:relative}
+.journey-fill{height:100%;background:linear-gradient(90deg,var(--pink-1),var(--pink-3));border-radius:999px;transition:width .8s}
+.journey-next{font-size:12.5px;color:var(--ink-soft);text-align:center}
+.journey-next b{color:var(--pink-3)}
+.legs{display:flex;gap:10px;overflow-x:auto;margin-top:14px;padding:2px 2px 6px;scrollbar-width:none}
+.legs::-webkit-scrollbar{display:none}
+.leg{flex:0 0 auto;width:76px;text-align:center}
+.leg .lc{width:60px;height:60px;margin:0 auto 5px;border-radius:18px;display:grid;place-items:center;font-size:28px;background:#ffe1f0;filter:grayscale(.6);opacity:.5;position:relative}
+.leg.reached .lc{background:linear-gradient(150deg,#fff,#fff0f8);filter:none;opacity:1;border:2px solid var(--pink-1)}
+.leg.current .lc{outline:3px solid var(--gold);outline-offset:1px;filter:none;opacity:1}
+.leg.reached .lc::after{content:"✓";position:absolute;top:-5px;right:-5px;width:18px;height:18px;background:#2ecc71;color:#fff;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:800;border:2px solid #fff}
+.leg .ll{font-size:10px;font-weight:600;color:var(--ink-soft);line-height:1.1}
+.fun-fact{margin-top:12px;font-size:12.5px;font-weight:500;color:var(--ink);background:#fff0f7;border-radius:14px;padding:9px 12px;text-align:center}
+
+/* Streak */
+.streak-card{padding:16px 18px;display:flex;align-items:center;gap:14px}
+.streak-flame{font-size:40px;animation:flick 1.6s ease-in-out infinite}
+@keyframes flick{0%,100%{transform:rotate(-4deg) scale(1)}50%{transform:rotate(4deg) scale(1.1)}}
+.streak-info{flex:1}
+.streak-info .big{font-family:'Baloo 2';font-weight:800;font-size:28px;color:var(--pink-3);line-height:1}
+.streak-info .sub{font-size:12.5px;font-weight:500;color:var(--ink-soft);margin-top:2px}
+.streak-week{display:flex;gap:6px;margin-top:10px}
+.streak-week .d{flex:1;text-align:center}
+.streak-week .ball{width:26px;height:26px;border-radius:50%;margin:0 auto 4px;display:grid;place-items:center;font-size:13px;background:#ffe1f0;color:#d98cb6}
+.streak-week .ball.hit{background:linear-gradient(135deg,var(--pink-2),var(--pink-3));color:#fff;box-shadow:0 4px 10px rgba(255,45,135,.35)}
+.streak-week .ball.today{outline:2.5px solid var(--gold);outline-offset:1px}
+.streak-week .lab{font-size:10px;font-weight:600;color:var(--ink-soft)}
+
+/* Chart */
+.chart-card{padding:18px 16px 12px}
+.bars{display:flex;align-items:flex-end;gap:8px;height:140px;padding-top:6px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.bar-track{width:100%;display:flex;align-items:flex-end;justify-content:center;height:100%}
+.bar{width:74%;max-width:30px;border-radius:9px 9px 4px 4px;background:linear-gradient(180deg,var(--pink-1),var(--pink-3));min-height:5px;transition:height .7s cubic-bezier(.2,.9,.3,1.2);position:relative;box-shadow:0 4px 10px rgba(255,45,135,.25)}
+.bar.goal{background:linear-gradient(180deg,#ffd76a,var(--gold))}
+.bar .val{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;color:var(--ink-soft);white-space:nowrap}
+.bar-lab{font-size:11px;font-weight:600;color:var(--ink-soft)}
+.bar-lab.today{color:var(--pink-3);font-weight:800}
+
+/* XP */
+.xp-card{padding:15px 17px}
+.xp-top{display:flex;justify-content:space-between;align-items:baseline;font-weight:600;font-size:13px;color:var(--ink-soft);margin-bottom:9px}
+.xp-top .lv{font-family:'Baloo 2';font-weight:800;font-size:16px;color:var(--pink-3)}
+.xp-track{height:16px;background:var(--ring-bg);border-radius:999px;overflow:hidden;position:relative}
+.xp-fill{height:100%;background:linear-gradient(90deg,var(--pink-1),var(--pink-3));border-radius:999px;width:0;transition:width .8s cubic-bezier(.2,.9,.3,1.2);position:relative;overflow:hidden}
+.xp-fill::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);animation:shine 2s linear infinite}
+@keyframes shine{to{transform:translateX(200%)}}
+
+/* Badges */
+.badges{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+.badge{aspect-ratio:1;background:#fff;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;box-shadow:var(--shadow);border:2px solid #ffe9f4;position:relative;text-align:center;padding:4px}
+.badge .b-ico{font-size:25px;filter:grayscale(1);opacity:.32;transition:.3s}
+.badge .b-name{font-size:9.5px;font-weight:600;color:var(--ink-soft);line-height:1.1}
+.badge.unlocked{background:linear-gradient(160deg,#fff,#fff2f9);border-color:var(--pink-1)}
+.badge.unlocked .b-ico{filter:none;opacity:1;animation:pop .5s ease}
+.badge.unlocked .b-name{color:var(--ink)}
+.badge.unlocked::after{content:"✓";position:absolute;top:-6px;right:-6px;width:20px;height:20px;background:#2ecc71;color:#fff;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;box-shadow:0 3px 7px rgba(46,204,113,.4);border:2px solid #fff}
+@keyframes pop{0%{transform:scale(.3)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+
+/* Bottom bar */
+.fab-bar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;gap:9px;justify-content:center;padding:11px 14px calc(11px + env(safe-area-inset-bottom));background:linear-gradient(0deg,var(--pink-bg-2) 35%,transparent)}
+.fab{flex:1;max-width:150px;background:#fff;border:none;border-radius:17px;padding:12px;font-family:'Baloo 2';font-weight:700;font-size:13.5px;color:var(--ink);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:transform .14s}
+.fab:active{transform:scale(.93)}
+.fab.primary{background:linear-gradient(135deg,var(--pink-2),var(--pink-3));color:#fff;box-shadow:var(--shadow-lg)}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;z-index:50;background:rgba(122,17,70,.4);backdrop-filter:blur(4px);display:none;align-items:flex-end;justify-content:center}
+.modal-bg.show{display:flex;animation:fade .2s}
+@keyframes fade{from{opacity:0}}
+.modal{background:var(--cream);width:100%;max-width:480px;border-radius:30px 30px 0 0;padding:22px 20px calc(26px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(214,24,107,.3);animation:up .3s cubic-bezier(.2,.9,.3,1.1);max-height:90dvh;overflow-y:auto}
+.modal.center{border-radius:30px;margin:auto;animation:popin .3s cubic-bezier(.2,.9,.3,1.2)}
+.modal-bg.centered{align-items:center;padding:16px}
+@keyframes up{from{transform:translateY(100%)}}
+@keyframes popin{from{transform:scale(.85);opacity:0}}
+.modal h3{font-family:'Baloo 2';font-weight:800;font-size:20px;color:var(--pink-3);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.modal p.hint{font-size:13px;color:var(--ink-soft);margin-bottom:16px;line-height:1.4}
+.field{margin-bottom:16px}
+.field label{display:block;font-weight:600;font-size:13px;color:var(--ink);margin-bottom:7px}
+.field input{width:100%;border:2px solid #ffd0e8;background:#fff;border-radius:14px;padding:13px 15px;font-family:'Baloo 2';font-weight:700;font-size:20px;color:var(--pink-3);text-align:center}
+.field input:focus{outline:none;border-color:var(--pink-2)}
+.range-row{display:flex;align-items:center;gap:12px}
+.range-row input[type=range]{flex:1;accent-color:var(--pink-3);height:6px}
+.range-row .rv{font-family:'Baloo 2';font-weight:800;font-size:18px;color:var(--pink-3);min-width:42px;text-align:right}
+.goal-presets{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.preset{flex:1;min-width:70px;border:2px solid #ffd0e8;background:#fff;border-radius:12px;padding:9px 4px;font-weight:700;font-size:13px;color:var(--ink-soft);cursor:pointer}
+.preset.active{background:linear-gradient(135deg,var(--pink-2),var(--pink-3));color:#fff;border-color:transparent}
+.btn-row{display:flex;gap:10px;margin-top:6px}
+.btn-block{flex:1;padding:14px;font-size:15px;border-radius:16px}
+.adder{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px}
+.adder button{border:2px solid #ffd0e8;background:#fff;border-radius:14px;padding:14px 4px;font-family:'Baloo 2';font-weight:800;font-size:16px;color:var(--pink-3);cursor:pointer}
+.adder button:active{transform:scale(.93);background:#fff0f7}
+.tiny{font-size:11px;color:var(--ink-soft);text-align:center;margin-top:8px;line-height:1.4}
+.lock-note{background:#fff0f7;border:1.5px dashed #ffb3d9;border-radius:14px;padding:11px;font-size:12.5px;color:var(--ink-soft);text-align:center;margin-bottom:14px}
+.lock-note b{color:var(--pink-3)}
+
+/* Shop */
+.shop-bal{display:flex;align-items:center;justify-content:center;gap:7px;background:linear-gradient(135deg,#fff0f7,#ffe1f0);border-radius:16px;padding:11px;font-family:'Baloo 2';font-weight:800;font-size:18px;color:var(--pink-3);margin-bottom:16px}
+.shop-tabs{display:flex;gap:8px;margin-bottom:14px}
+.shop-tab{flex:1;border:2px solid #ffd0e8;background:#fff;border-radius:13px;padding:9px;font-weight:700;font-size:13px;color:var(--ink-soft);cursor:pointer}
+.shop-tab.active{background:linear-gradient(135deg,var(--pink-2),var(--pink-3));color:#fff;border-color:transparent}
+.shop-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.shop-item{background:#fff;border:2px solid #ffe9f4;border-radius:18px;padding:12px 6px;text-align:center;cursor:pointer;position:relative;transition:transform .14s}
+.shop-item:active{transform:scale(.94)}
+.shop-item .si-ico{font-size:30px}
+.shop-item .si-name{font-size:11px;font-weight:600;color:var(--ink);margin-top:4px;line-height:1.1}
+.shop-item .si-cost{font-size:12px;font-weight:800;color:var(--pink-3);margin-top:5px}
+.shop-item.owned{border-color:var(--pink-1);background:linear-gradient(160deg,#fff,#fff2f9)}
+.shop-item.owned .si-cost{color:#2ecc71}
+.shop-item.equipped{outline:3px solid var(--gold);outline-offset:0}
+.shop-item.equipped::before{content:"PORTAT";position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--gold);color:#7a1146;font-size:8px;font-weight:800;padding:2px 7px;border-radius:999px;letter-spacing:.5px}
+
+/* Toast */
+.toast{position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%) translateY(-160%);z-index:80;background:#fff;color:var(--ink);padding:13px 20px;border-radius:18px;box-shadow:var(--shadow-lg);font-weight:600;font-size:14px;display:flex;align-items:center;gap:9px;border:2px solid var(--pink-1);transition:transform .4s cubic-bezier(.2,.9,.3,1.4);max-width:90vw}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast .te{font-size:22px}
+
+#confetti{position:fixed;inset:0;z-index:70;pointer-events:none;display:none}
+
+.celebrate{position:fixed;inset:0;z-index:75;display:none;align-items:center;justify-content:center;background:rgba(255,210,233,.55);backdrop-filter:blur(2px)}
+.celebrate.show{display:flex;animation:fade .3s}
+.celebrate .box{text-align:center;animation:up .4s cubic-bezier(.2,.9,.3,1.3)}
+.celebrate .big-em{font-size:88px;animation:bob 1.4s infinite}
+.celebrate h2{font-family:'Baloo 2';font-weight:800;font-size:30px;color:var(--pink-3);margin:6px 0;text-shadow:0 3px 0 #fff}
+.celebrate p{font-size:16px;font-weight:600;color:var(--ink)}
+@media(max-width:360px){.steps-num{font-size:46px}.ring-wrap{width:216px;height:216px}}
+</style>
+</head>
+<body data-theme="pastel">
+<div class="heart-bg" id="heartBg"></div>
+
+<div class="app">
+  <div class="topbar">
+    <div class="brand"><span class="logo">💖</span>PașiRoz</div>
+    <div class="chip">💗 <b id="coinsChip">0</b></div>
+    <div class="chip">⭐ <b id="lvlChip">1</b></div>
+    <button class="icon-btn" id="openSettings" aria-label="Setări">⚙️</button>
+  </div>
+
+  <!-- Ring -->
+  <div class="ring-card">
+    <div class="pct-badge" id="pctBadge">0%</div>
+    <div class="ring-wrap">
+      <svg width="244" height="244" viewBox="0 0 244 244">
+        <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="var(--pink-1)"/><stop offset="55%" stop-color="var(--pink-2)"/><stop offset="100%" stop-color="var(--pink-3)"/>
+        </linearGradient></defs>
+        <circle cx="122" cy="122" r="108" fill="none" stroke="var(--ring-bg)" stroke-width="20"/>
+        <circle id="ringFg" cx="122" cy="122" r="108" fill="none" stroke="url(#ringGrad)" stroke-width="20"
+          stroke-linecap="round" stroke-dasharray="678.58" stroke-dashoffset="678.58"
+          style="transition:stroke-dashoffset .8s cubic-bezier(.2,.9,.3,1.1)"/>
+      </svg>
+      <div class="ring-center">
+        <div class="mood" id="moodFace">😴</div>
+        <div class="steps-num" id="stepsNum">0</div>
+        <div class="steps-label">pași azi</div>
+      </div>
+    </div>
+    <div class="goal-line">Țintă: <b id="goalTxt">8.000</b> · mai ai <b id="remainTxt">8.000</b></div>
+    <div class="bubble" id="bubble">Hai la o plimbare! 💕</div>
+  </div>
+
+  <!-- Sensor -->
+  <div class="sensor-bar">
+    <div class="dot off" id="sensorDot"></div>
+    <div class="txt" id="sensorTxt"><b>Senzor inactiv.</b> Apasă „Pornește" ca să numărăm automat.</div>
+    <button class="btn btn-pink btn-sm" id="startBtn">Pornește</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat"><div class="ico">🔥</div><div class="v" id="kcal">0</div><div class="l">kcal</div></div>
+    <div class="stat"><div class="ico">📍</div><div class="v" id="km">0,0</div><div class="l">km azi</div></div>
+    <div class="stat"><div class="ico">⏱️</div><div class="v" id="mins">0</div><div class="l">min activ</div></div>
+  </div>
+
+  <!-- Mascot -->
+  <div class="section">
+    <div class="section-title"><span class="em">🐱</span> Pisicuța ta</div>
+    <div class="mascot-card">
+      <div class="cat-stage" id="catStage">
+        <div class="cat-platform"></div>
+        <div class="cat-acc" id="catAcc"></div>
+        <div class="cat-face" id="catFace">🐱</div>
+      </div>
+      <div class="cat-name" id="catName">—</div>
+      <div class="cat-stagename" id="catStageName">Pisoi bebe</div>
+      <div class="evo-track"><div class="evo-fill" id="evoFill"></div></div>
+      <div class="evo-cap" id="evoCap">Evoluție</div>
+      <div class="pet-hint">👆 Mângâi-o ca să toarcă</div>
+    </div>
+  </div>
+
+  <!-- Quests -->
+  <div class="section">
+    <div class="section-title"><span class="em">🎯</span> Provocări</div>
+    <div class="card" id="questCard"></div>
+  </div>
+
+  <!-- League -->
+  <div class="section">
+    <div class="section-title"><span class="em">🏆</span> Liga Roz <span class="side" id="leagueWeekLbl"></span></div>
+    <div class="card league-card">
+      <div class="rank-row">
+        <div class="rank-medal" id="rankMedal" style="background:linear-gradient(135deg,#ffd9ec,#ffb3d9)">🥉</div>
+        <div class="rank-info">
+          <div class="rank-name" id="rankName">Roz Bronz</div>
+          <div class="rank-sub" id="rankSub">0 pași săptămâna asta</div>
+        </div>
+      </div>
+      <div class="rank-bar"><div class="rank-fill" id="rankFill"></div></div>
+      <div class="rank-sub" id="rankNext" style="margin-top:7px"></div>
+      <div class="vs-row">
+        <div class="vs-box"><div class="vl">Săptămâna asta</div><div class="vv" id="vsThis">0</div></div>
+        <div class="vs-box"><div class="vl">Săptămâna trecută</div><div class="vv" id="vsLast">0</div></div>
+      </div>
+      <div class="vs-delta" id="vsDelta"></div>
+    </div>
+  </div>
+
+  <!-- Journey -->
+  <div class="section">
+    <div class="section-title"><span class="em">🗺️</span> Călătoria în lume</div>
+    <div class="card journey-card">
+      <div class="journey-now">
+        <div class="journey-emoji" id="jEmoji">🏠</div>
+        <div class="journey-txt">
+          <div class="jn" id="jName">Acasă</div>
+          <div class="js" id="jDist">Ai mers 0,0 km în total 🌍</div>
+        </div>
+      </div>
+      <div class="journey-bar"><div class="journey-fill" id="jFill"></div></div>
+      <div class="journey-next" id="jNext">Următoarea oprire: <b>—</b></div>
+      <div class="legs" id="legs"></div>
+      <div class="fun-fact" id="funFact"></div>
+    </div>
+  </div>
+
+  <!-- Streak -->
+  <div class="section">
+    <div class="section-title"><span class="em">🔥</span> Seria ta</div>
+    <div class="card streak-card">
+      <div class="streak-flame">🔥</div>
+      <div class="streak-info">
+        <div class="big" id="streakBig">0 zile</div>
+        <div class="sub" id="streakSub">Atinge ținta azi ca să începi seria!</div>
+        <div class="streak-week" id="streakWeek"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div class="section">
+    <div class="section-title"><span class="em">📊</span> Ultimele 7 zile</div>
+    <div class="card chart-card"><div class="bars" id="bars"></div></div>
+  </div>
+
+  <!-- XP -->
+  <div class="section">
+    <div class="section-title"><span class="em">⭐</span> Experiență</div>
+    <div class="card xp-card">
+      <div class="xp-top"><span class="lv">Nivel <span id="xpLvl">1</span></span><span id="xpTxt">0 / 100 XP</span></div>
+      <div class="xp-track"><div class="xp-fill" id="xpFill"></div></div>
+    </div>
+  </div>
+
+  <!-- Badges -->
+  <div class="section">
+    <div class="section-title"><span class="em">🏅</span> Realizări <span class="side" id="badgeCount"></span></div>
+    <div class="badges" id="badges"></div>
+  </div>
+
+  <p class="tiny" style="margin-top:22px">Făcut cu 💖 pentru Liviu · datele rămân pe telefonul tău</p>
+</div>
+
+<!-- Bottom -->
+<div class="fab-bar">
+  <button class="fab" id="openAdd">➕ Adaugă</button>
+  <button class="fab" id="openShop">🛍️ Magazin</button>
+  <button class="fab primary" id="goalFab">🎯 Țintă</button>
+</div>
+
+<!-- Name cat modal (first run) -->
+<div class="modal-bg centered" id="nameModal">
+  <div class="modal center">
+    <div style="text-align:center;font-size:64px;margin-bottom:4px;animation:bob 3s infinite">🐱</div>
+    <h3 style="justify-content:center">Bună! 💕</h3>
+    <p class="hint" style="text-align:center">Sunt noua ta pisicuță roz și voi crește din pașii tăi! Cum mă cheamă?</p>
+    <div class="field"><input type="text" id="nameInput" maxlength="14" placeholder="ex: Roz, Mimi, Catifea..."></div>
+    <div class="btn-row"><button class="btn btn-pink btn-block" id="nameSave">Gata, ăsta-i numele meu! 🎀</button></div>
+    <p class="tiny">Vei putea schimba numele după ce facem împreună 100.000 de pași 💪</p>
+  </div>
+</div>
+
+<!-- Rename modal -->
+<div class="modal-bg centered" id="renameModal">
+  <div class="modal center">
+    <h3 style="justify-content:center">✏️ Schimbă numele</h3>
+    <div id="renameLocked" class="lock-note">🔒 Trebuie <b>100.000 de pași</b> ca să poți schimba numele.<br><span id="renameProg"></span></div>
+    <div id="renameOpen" style="display:none">
+      <p class="hint" style="text-align:center">Ai deblocat schimbarea numelui! 🎉</p>
+      <div class="field"><input type="text" id="renameInput" maxlength="14"></div>
+      <div class="btn-row"><button class="btn btn-ghost btn-block" id="renameCancel">Anulează</button><button class="btn btn-pink btn-block" id="renameSave">Salvează 💖</button></div>
+    </div>
+    <div class="btn-row" id="renameCloseRow"><button class="btn btn-ghost btn-block" id="renameClose">Închide</button></div>
+  </div>
+</div>
+
+<!-- Goal/settings modal -->
+<div class="modal-bg" id="goalModal">
+  <div class="modal">
+    <h3>🎯 Ținta zilnică</h3>
+    <p class="hint">Câți pași vrei să faci în fiecare zi?</p>
+    <div class="field">
+      <input type="number" id="goalInput" min="500" step="500" value="8000">
+      <div class="goal-presets" id="presets">
+        <button class="preset" data-v="5000">😌 5.000</button>
+        <button class="preset" data-v="8000">🙂 8.000</button>
+        <button class="preset" data-v="10000">💪 10.000</button>
+        <button class="preset" data-v="15000">🔥 15.000</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Sensibilitate senzor <span style="color:var(--ink-soft);font-weight:400">(crește dacă numără prea mult)</span></label>
+      <div class="range-row"><span style="font-size:18px">🐢</span><input type="range" id="sensInput" min="8" max="22" step="1" value="13"><span style="font-size:18px">🐇</span><span class="rv" id="sensVal">1,3</span></div>
+    </div>
+    <div class="btn-row"><button class="btn btn-ghost btn-block" id="goalCancel">Anulează</button><button class="btn btn-pink btn-block" id="goalSave">Salvează 💖</button></div>
+    <p class="tiny"><span id="resetBtn" style="text-decoration:underline;cursor:pointer">Resetează toate datele</span></p>
+  </div>
+</div>
+
+<!-- Add modal -->
+<div class="modal-bg" id="addModal">
+  <div class="modal">
+    <h3>➕ Adaugă pași manual</h3>
+    <p class="hint">Pentru când n-ai avut telefonul la tine (sau ca să testezi 😉).</p>
+    <div class="adder">
+      <button data-add="100">+100</button><button data-add="250">+250</button><button data-add="500">+500</button>
+      <button data-add="1000">+1.000</button><button data-add="2000">+2.000</button><button data-add="5000">+5.000</button>
+    </div>
+    <div class="field"><input type="number" id="customAdd" min="1" placeholder="sau scrie un număr..."></div>
+    <div class="btn-row"><button class="btn btn-ghost btn-block" id="addCancel">Gata</button><button class="btn btn-pink btn-block" id="addCustom">Adaugă 💖</button></div>
+  </div>
+</div>
+
+<!-- Shop modal -->
+<div class="modal-bg" id="shopModal">
+  <div class="modal">
+    <h3>🛍️ Magazinul Roz</h3>
+    <div class="shop-bal">💗 <span id="shopCoins">0</span> inimioare</div>
+    <div class="shop-tabs">
+      <button class="shop-tab active" data-tab="acc">🎀 Accesorii</button>
+      <button class="shop-tab" data-tab="theme">🎨 Teme</button>
+    </div>
+    <div class="shop-grid" id="shopGrid"></div>
+    <p class="tiny">Câștigi inimioare 💗 din provocări și când îți atingi ținta zilnică!</p>
+    <div class="btn-row"><button class="btn btn-ghost btn-block" id="shopClose">Închide</button></div>
+  </div>
+</div>
+
+<canvas id="confetti"></canvas>
+<div class="celebrate" id="celebrate"><div class="box"><div class="big-em" id="celEm">🎉</div><h2 id="celTitle">Țintă atinsă!</h2><p id="celSub">Ești o vedetă 💖</p></div></div>
+<div class="toast" id="toast"><span class="te" id="toastEm">💖</span><span id="toastMsg"></span></div>
+
+<script>
+"use strict";
+/* ===================== PașiRoz 🐱💖 ===================== */
+const $ = id => document.getElementById(id);
+const todayKey = () => new Date().toLocaleDateString('sv');
+const fmt = n => Math.round(n).toLocaleString('ro-RO');
+const STEP_M = 0.000762; // km per step (~0.76 m stride)
+
+/* ---------- State ---------- */
+const DEFAULTS = { goal:8000, sensitivity:1.3, history:{}, xp:0, total:0, coins:0,
+  badges:[], activeSec:0, streak:0, bestStreak:0,
+  cat:{name:'', set:false}, owned:['none','pastel'], equipAcc:'none', theme:'pastel',
+  questDone:{}, weekDone:{} };
+let S = load();
+function load(){
+  try{
+    const raw = JSON.parse(localStorage.getItem('pasiroz')||'{}');
+    const s = Object.assign({}, DEFAULTS, raw);
+    s.history=raw.history||{}; s.badges=raw.badges||[]; s.cat=Object.assign({name:'',set:false},raw.cat||{});
+    s.owned=raw.owned||['none','pastel']; s.questDone=raw.questDone||{}; s.weekDone=raw.weekDone||{};
+    if(!s.owned.includes('none'))s.owned.push('none'); if(!s.owned.includes('pastel'))s.owned.push('pastel');
+    if(s.total<sumHistory(s.history)) s.total=sumHistory(s.history); // migrate / safety
+    return s;
+  }catch(e){ return JSON.parse(JSON.stringify(DEFAULTS)); }
+}
+function sumHistory(h){ let t=0; for(const k in h) t+=h[k]; return t; }
+let saveTimer=null;
+function save(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>localStorage.setItem('pasiroz',JSON.stringify(S)),200); }
+function getToday(){ const k=todayKey(); if(!S.history[k]) S.history[k]=0; return S.history[k]; }
+function setToday(v){ S.history[todayKey()]=Math.max(0,Math.round(v)); }
+function activeMin(){ return S.activeSec/60; }
+
+/* ---------- Week helpers ---------- */
+function mondayOf(d){ const x=new Date(d); const day=(x.getDay()+6)%7; x.setHours(0,0,0,0); x.setDate(x.getDate()-day); return x; }
+function weekKey(d){ return mondayOf(d).toLocaleDateString('sv'); }
+function weekSteps(offset){ // 0 = this week, 1 = last week
+  const m=mondayOf(new Date()); m.setDate(m.getDate()-offset*7);
+  let t=0; for(let i=0;i<7;i++){ const d=new Date(m); d.setDate(d.getDate()+i); t+=S.history[d.toLocaleDateString('sv')]||0; }
+  return t;
+}
+
+/* ---------- Step engine ---------- */
+const engine={ active:false, grav:[0,0,0], lastPeak:0, above:false, gotData:false, lastStepTs:0, MIN_INTERVAL:260 };
+function handleMotion(e){
+  const a=e.accelerationIncludingGravity||e.acceleration; if(!a||a.x==null) return;
+  engine.gotData=true; const al=0.8;
+  engine.grav[0]=al*engine.grav[0]+(1-al)*a.x; engine.grav[1]=al*engine.grav[1]+(1-al)*a.y; engine.grav[2]=al*engine.grav[2]+(1-al)*a.z;
+  const lx=a.x-engine.grav[0], ly=a.y-engine.grav[1], lz=a.z-engine.grav[2];
+  const mag=Math.sqrt(lx*lx+ly*ly+lz*lz), now=performance.now(), T=S.sensitivity;
+  if(mag>T && !engine.above && (now-engine.lastPeak)>engine.MIN_INTERVAL){ engine.above=true; engine.lastPeak=now; onStep(); }
+  else if(mag<T*0.55){ engine.above=false; }
+}
+let pendingDraw=false;
+function onStep(){
+  setToday(getToday()+1); S.total++; S.activeSec+=0.55; engine.lastStepTs=Date.now(); addXp(1);
+  if(!pendingDraw){ pendingDraw=true; requestAnimationFrame(()=>{pendingDraw=false; render();}); }
+  checkAll(); save();
+}
+async function startSensor(){
+  try{
+    if(typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function'){
+      const res=await DeviceMotionEvent.requestPermission(); if(res!=='granted'){ sensorState('denied'); return; }
+    }
+    if(typeof DeviceMotionEvent==='undefined'){ sensorState('unsupported'); return; }
+    window.addEventListener('devicemotion',handleMotion,{passive:true});
+    engine.active=true; engine.gotData=false; sensorState('live');
+    setTimeout(()=>{ if(engine.active&&!engine.gotData) sensorState('nodata'); },1800);
+  }catch(err){ sensorState('error'); }
+}
+function stopSensor(){ window.removeEventListener('devicemotion',handleMotion); engine.active=false; sensorState('off'); }
+function sensorState(st){
+  const dot=$('sensorDot'), txt=$('sensorTxt'), btn=$('startBtn'); dot.className='dot';
+  const M={
+    live:['live','<b>Numărăm pașii! 🎉</b> Ține telefonul în mână sau în buzunar.','Stop','1'],
+    off:['off','<b>Senzor inactiv.</b> Apasă „Pornește" ca să numărăm automat.','Pornește',''],
+    denied:['off','<b>Permisiune refuzată.</b> Activează mișcarea în setări și reîncearcă.','Reîncearcă',''],
+    unsupported:['off','<b>Browserul nu dă acces la senzor.</b> Folosește „➕ Adaugă" manual.','',''],
+    nodata:['off','<b>Nu primesc date.</b> Pe iPhone trebuie HTTPS + permisiune. Încearcă pe telefon.','Reîncearcă',''],
+    error:['off','<b>Hopa, ceva n-a mers.</b> Reîncearcă.','Reîncearcă','']
+  };
+  const m=M[st]||M.error; dot.classList.add(m[0]); txt.innerHTML=m[1];
+  if(m[2]===''){ btn.style.display='none'; } else { btn.style.display=''; btn.textContent=m[2]; btn.dataset.on=m[3]; }
+  if(st==='nodata') engine.active=false;
+}
+
+/* ---------- XP & Levels ---------- */
+function xpForLevel(lv){ return 100+(lv-1)*120; }
+function levelInfo(){ let lv=1,xp=S.xp; while(xp>=xpForLevel(lv)){ xp-=xpForLevel(lv); lv++; } return {lv,cur:xp,need:xpForLevel(lv)}; }
+function addXp(n){ const b=levelInfo().lv; S.xp+=n; const a=levelInfo().lv; if(a>b){ S.coins+=10; toast('🌟','Nivel '+a+'! +10 💗'); burst(); } }
+
+/* ---------- Mascot stages ---------- */
+const STAGES=[
+  {min:0,     face:'🐱', name:'Pisoi bebe'},
+  {min:5000,  face:'🐈', name:'Pisoi'},
+  {min:20000, face:'😺', name:'Pisicuță'},
+  {min:60000, face:'😸', name:'Pisică mare'},
+  {min:150000,face:'😻', name:'Pisică Regală 👑'},
+  {min:400000,face:'🦄', name:'Pisica Legendară ✨'},
+];
+function stageOf(total){ let s=STAGES[0],idx=0; STAGES.forEach((st,i)=>{ if(total>=st.min){s=st;idx=i;} }); return {st:s,idx}; }
+
+/* ---------- Mood ---------- */
+function moodFace(){
+  const steps=getToday(), pct=S.goal>0?steps/S.goal*100:0;
+  const recent=engine.active && (Date.now()-engine.lastStepTs)<4000;
+  if(recent) return '😻';
+  if(pct>=100) return '😸';
+  if(pct>=50) return '😺';
+  if(pct>=10) return '🙂';
+  return '😴';
+}
+function moodMsg(){
+  const steps=getToday(), pct=S.goal>0?steps/S.goal*100:0;
+  const name=S.cat.name||'Pisicuța';
+  if(engine.active && (Date.now()-engine.lastStepTs)<4000) return name+' dansează de bucurie! 💃';
+  if(pct>=150) return 'WOW! '+name+' e impresionată! 👑';
+  if(pct>=100) return 'Țintă atinsă! '+name+' toarce fericită 😻';
+  if(pct>=75) return 'Aproape gata! Nu te opri! ✨';
+  if(pct>=50) return 'Jumătate gata! Ești pe val 🌊';
+  if(pct>=10) return 'Bun început! Continuă 🌸';
+  if(steps===0) return name+' te așteaptă la o plimbare 🥺';
+  return 'Hai să ne mai mișcăm puțin 💕';
+}
+
+/* ---------- Shop items ---------- */
+const ACCESSORIES=[
+  {id:'none', ico:'🚫', emoji:'', name:'Fără', cost:0},
+  {id:'bow',  ico:'🎀', emoji:'🎀', name:'Fundiță', cost:50},
+  {id:'flower',ico:'🌸',emoji:'🌸', name:'Floare', cost:60},
+  {id:'glasses',ico:'🕶️',emoji:'🕶️',name:'Ochelari', cost:80},
+  {id:'hat',  ico:'👒', emoji:'👒', name:'Pălărie', cost:100},
+  {id:'crown',ico:'👑', emoji:'👑', name:'Coroană', cost:250},
+];
+const THEMES=[
+  {id:'pastel', ico:'🌸', name:'Roz Pastel', cost:0},
+  {id:'fucsia', ico:'💖', name:'Fucsia', cost:120},
+  {id:'lavanda',ico:'💜', name:'Lavandă', cost:120},
+];
+
+/* ---------- Quests ---------- */
+const QUEST_POOL=[
+  {id:'goal',  ico:'🎯', title:()=>'Atinge ținta de '+fmt(S.goal)+' pași', cur:()=>getToday(), target:()=>S.goal, reward:25},
+  {id:'q5000', ico:'🚶‍♀️', title:()=>'Fă 5.000 de pași azi', cur:()=>getToday(), target:()=>5000, reward:15},
+  {id:'q3000', ico:'🌸', title:()=>'Fă 3.000 de pași azi', cur:()=>getToday(), target:()=>3000, reward:10},
+  {id:'active20',ico:'⏱️', title:()=>'Fii activ 20 de minute', cur:()=>activeMin(), target:()=>20, reward:15},
+  {id:'active10',ico:'💕', title:()=>'Fii activ 10 minute', cur:()=>activeMin(), target:()=>10, reward:10},
+  {id:'q7000', ico:'🔥', title:()=>'Fă 7.000 de pași azi', cur:()=>getToday(), target:()=>7000, reward:20},
+];
+function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))|0; } return Math.abs(h); }
+function dailyQuest(){ return QUEST_POOL[hashStr(todayKey())%QUEST_POOL.length]; }
+const WEEKLY={ id:'w50k', ico:'🏆', title:()=>'Fă 50.000 de pași săptămâna asta', cur:()=>weekSteps(0), target:()=>50000, reward:100 };
+function checkQuests(){
+  const dq=dailyQuest(), dk=todayKey()+':'+dq.id;
+  if(!S.questDone[dk] && dq.cur()>=dq.target()){ S.questDone[dk]=true; S.coins+=dq.reward; toast(dq.ico,'Provocare zilnică gata! +'+dq.reward+' 💗'); burst(60); save(); }
+  const wk=weekKey(new Date())+':'+WEEKLY.id;
+  if(!S.weekDone[wk] && WEEKLY.cur()>=WEEKLY.target()){ S.weekDone[wk]=true; S.coins+=WEEKLY.reward; toast(WEEKLY.ico,'Provocare săptămânală gata! +'+WEEKLY.reward+' 💗'); burst(120); save(); }
+}
+
+/* ---------- Badges ---------- */
+const BADGES=[
+  {id:'first',ico:'👣',name:'Primii pași',test:()=>getToday()>=100},
+  {id:'k1',ico:'🌸',name:'1.000 azi',test:()=>getToday()>=1000},
+  {id:'goal',ico:'🎯',name:'Țintă atinsă',test:()=>getToday()>=S.goal},
+  {id:'k10',ico:'🏃‍♀️',name:'10.000!',test:()=>getToday()>=10000},
+  {id:'k20',ico:'🦄',name:'20.000 legendă',test:()=>getToday()>=20000},
+  {id:'streak3',ico:'🔥',name:'3 zile la rând',test:()=>S.streak>=3},
+  {id:'streak7',ico:'👑',name:'Săptămână plină',test:()=>S.streak>=7},
+  {id:'lv5',ico:'⭐',name:'Nivel 5',test:()=>levelInfo().lv>=5},
+  {id:'lv10',ico:'💎',name:'Nivel 10',test:()=>levelInfo().lv>=10},
+  {id:'total100k',ico:'🏅',name:'100k total',test:()=>S.total>=100000},
+  {id:'traveler',ico:'🗺️',name:'Călător',test:()=>S.total*STEP_M>=30},
+  {id:'shopper',ico:'🛍️',name:'Cumpărător',test:()=>S.owned.length>4},
+];
+function checkBadges(){ BADGES.forEach(b=>{ if(!S.badges.includes(b.id)&&b.test()){ S.badges.push(b.id); toast(b.ico,'Realizare: '+b.name+'!'); burst(); save(); } }); }
+
+/* ---------- Goal hits / streak ---------- */
+const HITKEY='pasiroz_hits';
+function hits(){ try{return JSON.parse(localStorage.getItem(HITKEY)||'{}')}catch(e){return{}} }
+function wasGoalHit(k){ return !!hits()[k]; }
+function markGoalHit(){ const h=hits(); h[todayKey()]=true; localStorage.setItem(HITKEY,JSON.stringify(h)); recomputeStreak(); }
+function recomputeStreak(){
+  const h=hits(); let streak=0; const d=new Date();
+  if(!h[todayKey()]) d.setDate(d.getDate()-1);
+  for(;;){ const k=d.toLocaleDateString('sv'); if(h[k]){ streak++; d.setDate(d.getDate()-1); } else break; }
+  S.streak=streak; S.bestStreak=Math.max(S.bestStreak||0,streak); save();
+}
+let celebratedToday=false;
+function checkGoal(){
+  if(getToday()>=S.goal && !celebratedToday && !wasGoalHit(todayKey())){
+    celebratedToday=true; markGoalHit(); S.coins+=25; celebrate();
+  }
+}
+function checkAll(){ checkGoal(); checkQuests(); checkBadges(); }
+
+/* ---------- Journey (world map) ---------- */
+const JOURNEY=[
+  {km:0,   em:'🏠', name:'Acasă'},
+  {km:5,   em:'🏰', name:'Castelul Peleș'},
+  {km:15,  em:'🏛️', name:'București'},
+  {km:30,  em:'🗼', name:'Turnul Eiffel'},
+  {km:50,  em:'🇬🇧', name:'Big Ben, Londra'},
+  {km:75,  em:'🏟️', name:'Colosseum, Roma'},
+  {km:110, em:'🐫', name:'Piramidele, Egipt'},
+  {km:150, em:'🕌', name:'Taj Mahal'},
+  {km:200, em:'🐉', name:'Marele Zid'},
+  {km:270, em:'🗻', name:'Muntele Fuji'},
+  {km:350, em:'🗽', name:'Statuia Libertății'},
+  {km:450, em:'🌉', name:'Golden Gate'},
+  {km:580, em:'⛰️', name:'Machu Picchu'},
+  {km:720, em:'🏖️', name:'Opera Sydney'},
+  {km:1000,em:'🌍', name:'Înconjurul lumii!'},
+];
+const FUN_FACTS=[
+  d=>`Ai mers cât ${(d/0.33).toFixed(0)} terenuri de fotbal! ⚽`,
+  d=>`Adică ${(d*1312).toFixed(0)} pași de pisică! 🐱`,
+  d=>`Cât ${(d/0.324).toFixed(0)} Turnuri Eiffel puse cap la cap! 🗼`,
+  d=>`Ai ars energie cât pentru ${(d*0.6).toFixed(0)} bomboane roz! 🍬`,
+  d=>`Cât ${(d/0.0084).toFixed(0)} lungimi de delfin! 🐬`,
+];
+function journeyInfo(){
+  const km=S.total*STEP_M; let curIdx=0;
+  for(let i=0;i<JOURNEY.length;i++){ if(km>=JOURNEY[i].km) curIdx=i; }
+  const cur=JOURNEY[curIdx], next=JOURNEY[Math.min(curIdx+1,JOURNEY.length-1)];
+  const segStart=cur.km, segEnd=next.km, prog=segEnd>segStart?Math.min(1,(km-segStart)/(segEnd-segStart)):1;
+  return {km,curIdx,cur,next,prog};
+}
+
+/* ---------- Render ---------- */
+const CIRC=2*Math.PI*108;
+function render(){
+  const steps=getToday(), goal=S.goal, pct=goal>0?steps/goal*100:0;
+  $('stepsNum').textContent=fmt(steps);
+  $('goalTxt').textContent=fmt(goal);
+  $('remainTxt').textContent=fmt(Math.max(0,goal-steps));
+  $('pctBadge').textContent=Math.min(999,Math.round(pct))+'%';
+  $('ringFg').style.strokeDashoffset=CIRC*(1-Math.min(1,pct/100));
+  $('moodFace').textContent=moodFace();
+  $('bubble').textContent=moodMsg();
+  $('coinsChip').textContent=fmt(S.coins);
+  $('kcal').textContent=fmt(steps*0.04);
+  $('km').textContent=(steps*STEP_M).toFixed(1).replace('.',',');
+  $('mins').textContent=fmt(activeMin());
+
+  renderMascot(); renderQuests(); renderLeague(); renderJourney();
+  renderStreak(); renderChart(); renderXp(); renderBadges();
+}
+function renderMascot(){
+  const {st,idx}=stageOf(S.total);
+  $('catFace').textContent=st.face;
+  $('catStageName').textContent=st.name;
+  const acc=ACCESSORIES.find(a=>a.id===S.equipAcc)||ACCESSORIES[0];
+  $('catAcc').textContent=acc.emoji||'';
+  const nm=S.cat.name||'Pisicuța';
+  $('catName').innerHTML=nm+' <span class="edit" id="renameTrigger">✏️</span>';
+  $('renameTrigger').onclick=openRename;
+  const next=STAGES[idx+1];
+  if(next){ const p=(S.total-st.min)/(next.min-st.min)*100; $('evoFill').style.width=Math.min(100,p)+'%'; $('evoCap').textContent='Spre „'+next.name.replace(/[👑✨]/g,'').trim()+'": '+fmt(Math.max(0,next.min-S.total))+' pași'; }
+  else { $('evoFill').style.width='100%'; $('evoCap').textContent='Formă maximă atinsă! 🌟'; }
+}
+function renderQuests(){
+  const wrap=$('questCard'); wrap.innerHTML='';
+  const list=[{q:dailyQuest(),done:!!S.questDone[todayKey()+':'+dailyQuest().id],tag:'Azi'},
+              {q:WEEKLY,done:!!S.weekDone[weekKey(new Date())+':'+WEEKLY.id],tag:'Săptămâna'}];
+  list.forEach(({q,done,tag})=>{
+    const cur=q.cur(), tgt=q.target(), p=Math.min(100,cur/tgt*100);
+    const el=document.createElement('div'); el.className='quest'+(done?' done':'');
+    el.innerHTML=`<div class="q-ico">${done?'✅':q.ico}</div>
+      <div class="q-mid"><div class="q-title">${q.title()}</div>
+      <div class="q-bar"><div class="q-fill" style="width:${p}%"></div></div>
+      <div class="q-sub">${tag} · ${fmt(Math.min(cur,tgt))}/${fmt(tgt)}</div></div>
+      <div class="q-reward">${done?'✓':'+'+q.reward}<br><span style="font-size:11px">💗</span></div>`;
+    wrap.appendChild(el);
+  });
+}
+const RANKS=[
+  {min:0,     name:'Roz Bronz',   medal:'🥉', bg:'linear-gradient(135deg,#ffd9ec,#e8a06f)'},
+  {min:20000, name:'Roz Argint',  medal:'🥈', bg:'linear-gradient(135deg,#ffe1f0,#c9c9d4)'},
+  {min:40000, name:'Roz Aur',     medal:'🥇', bg:'linear-gradient(135deg,#fff0c4,#ffcf4d)'},
+  {min:60000, name:'Roz Platină', medal:'💠', bg:'linear-gradient(135deg,#e0f7ff,#a5e8ff)'},
+  {min:90000, name:'Roz Diamant', medal:'💎', bg:'linear-gradient(135deg,#ffe1f7,#ff9ad2)'},
+  {min:130000,name:'Roz Master',  medal:'👑', bg:'linear-gradient(135deg,#ffd9ec,#ff2d87)'},
+];
+function renderLeague(){
+  const wk=weekSteps(0), last=weekSteps(1);
+  let r=RANKS[0],idx=0; RANKS.forEach((x,i)=>{ if(wk>=x.min){r=x;idx=i;} });
+  const next=RANKS[idx+1];
+  $('rankMedal').textContent=r.medal; $('rankMedal').style.background=r.bg;
+  $('rankName').textContent=r.name;
+  $('rankSub').textContent=fmt(wk)+' pași săptămâna asta';
+  if(next){ const p=(wk-r.min)/(next.min-r.min)*100; $('rankFill').style.width=Math.min(100,p)+'%'; $('rankNext').textContent='Încă '+fmt(next.min-wk)+' pași până la '+next.name+' '+next.medal; }
+  else { $('rankFill').style.width='100%'; $('rankNext').textContent='Rang maxim! Ești regină 👑'; }
+  $('vsThis').textContent=fmt(wk); $('vsLast').textContent=fmt(last);
+  const dEl=$('vsDelta'), diff=wk-last;
+  if(last===0 && wk===0){ dEl.textContent='Hai să începem săptămâna! 💪'; dEl.className='vs-delta'; }
+  else if(diff>=0){ dEl.textContent='🔼 Cu '+fmt(diff)+' pași mai mult ca săptămâna trecută! Bravo!'; dEl.className='vs-delta up'; }
+  else { dEl.textContent='🔽 Cu '+fmt(-diff)+' pași mai puțin. Poți recupera! 💕'; dEl.className='vs-delta down'; }
+  const mk=mondayOf(new Date()); $('leagueWeekLbl').textContent='din '+mk.toLocaleDateString('ro-RO',{day:'numeric',month:'short'});
+}
+function renderJourney(){
+  const j=journeyInfo();
+  $('jEmoji').textContent=j.cur.em; $('jName').textContent=j.cur.name;
+  $('jDist').textContent='Ai mers '+j.km.toFixed(1).replace('.',',')+' km în total 🌍';
+  if(j.curIdx<JOURNEY.length-1){ $('jFill').style.width=(j.prog*100)+'%'; $('jNext').innerHTML='Următoarea oprire: <b>'+j.next.name+'</b> ('+(j.next.km-j.km).toFixed(1).replace('.',',')+' km)'; }
+  else { $('jFill').style.width='100%'; $('jNext').innerHTML='<b>Ai înconjurat lumea! 🌍🎉</b>'; }
+  const legs=$('legs'); legs.innerHTML='';
+  JOURNEY.forEach((L,i)=>{
+    const reached=j.km>=L.km, current=i===j.curIdx;
+    const el=document.createElement('div'); el.className='leg'+(reached?' reached':'')+(current?' current':'');
+    el.innerHTML=`<div class="lc">${L.em}</div><div class="ll">${L.name}</div>`;
+    legs.appendChild(el);
+  });
+  const cur=legs.querySelector('.leg.current'); if(cur) cur.scrollIntoView({inline:'center',block:'nearest'});
+  $('funFact').textContent=FUN_FACTS[hashStr(todayKey())%FUN_FACTS.length](Math.max(0.1,j.km));
+}
+function renderStreak(){
+  $('streakBig').textContent=S.streak+(S.streak===1?' zi':' zile');
+  $('streakSub').textContent=S.streak>0?('Record: '+(S.bestStreak||S.streak)+' zile 🏆'):'Atinge ținta azi ca să începi seria!';
+  const wrap=$('streakWeek'); wrap.innerHTML=''; const labs=['L','Ma','Mi','J','V','S','D']; const h=hits();
+  for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=d.toLocaleDateString('sv'); const js=(d.getDay()+6)%7; const hit=h[k]; const today=i===0;
+    const el=document.createElement('div'); el.className='d';
+    el.innerHTML=`<div class="ball${hit?' hit':''}${today?' today':''}">${hit?'🔥':''}</div><div class="lab">${labs[js]}</div>`; wrap.appendChild(el);
+  }
+}
+function renderChart(){
+  const bars=$('bars'); bars.innerHTML=''; const labs=['L','Ma','Mi','J','V','S','D']; const days=[]; let max=S.goal;
+  for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=d.toLocaleDateString('sv'); const v=S.history[k]||0; days.push({d,v}); max=Math.max(max,v); }
+  days.forEach((day,idx)=>{ const js=(day.d.getDay()+6)%7; const today=idx===6; const h=Math.max(4,day.v/max*100);
+    const col=document.createElement('div'); col.className='bar-col';
+    const lab=day.v>=1000?(day.v/1000).toFixed(day.v>=10000?0:1).replace('.',',')+'k':day.v;
+    col.innerHTML=`<div class="bar-track"><div class="bar${day.v>=S.goal?' goal':''}" style="height:0%"><span class="val">${lab}</span></div></div><div class="bar-lab${today?' today':''}">${labs[js]}</div>`;
+    bars.appendChild(col); requestAnimationFrame(()=>{ col.querySelector('.bar').style.height=h+'%'; });
+  });
+}
+function renderXp(){ const li=levelInfo(); $('lvlChip').textContent=li.lv; $('xpLvl').textContent=li.lv; $('xpTxt').textContent=li.cur+' / '+li.need+' XP'; $('xpFill').style.width=(li.cur/li.need*100)+'%'; }
+function renderBadges(){ const wrap=$('badges'); wrap.innerHTML=''; BADGES.forEach(b=>{ const un=S.badges.includes(b.id); const el=document.createElement('div'); el.className='badge'+(un?' unlocked':''); el.innerHTML=`<div class="b-ico">${b.ico}</div><div class="b-name">${b.name}</div>`; wrap.appendChild(el); }); $('badgeCount').textContent='('+S.badges.length+'/'+BADGES.length+')'; }
+
+/* ---------- Celebration / confetti / sound ---------- */
+function celebrate(){ const c=$('celebrate'); $('celEm').textContent='🎉'; $('celTitle').textContent='Țintă atinsă! 🎯'; $('celSub').textContent=fmt(getToday())+' pași azi · +25 💗'; c.classList.add('show'); ping(880); setTimeout(()=>ping(1320),120); setTimeout(()=>ping(1760),240); burst(180); setTimeout(()=>c.classList.remove('show'),2600); }
+const cv=$('confetti'), ctx=cv.getContext('2d'); let parts=[], raf=null;
+function sizeCv(){ cv.width=innerWidth; cv.height=innerHeight; } addEventListener('resize',sizeCv); sizeCv();
+const COLORS=['#ff8fc7','#ff5fa2','#ff2d87','#ffcf4d','#fff','#ffb3d9'];
+function burst(n=80){ cv.style.display='block';
+  for(let i=0;i<n;i++){ parts.push({x:innerWidth/2+(Math.random()-.5)*120,y:innerHeight*0.42,vx:(Math.random()-.5)*9,vy:-(Math.random()*11+5),g:0.28+Math.random()*0.12,s:6+Math.random()*7,r:Math.random()*6.28,vr:(Math.random()-.5)*0.4,c:COLORS[(Math.random()*COLORS.length)|0],shape:Math.random()<0.4?'heart':'rect',life:1}); }
+  if(!raf) raf=requestAnimationFrame(stepConfetti);
+}
+function stepConfetti(){ ctx.clearRect(0,0,cv.width,cv.height);
+  parts.forEach(p=>{ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.r+=p.vr; p.vx*=0.99; if(p.y>innerHeight+40)p.life=0; });
+  parts=parts.filter(p=>p.life>0);
+  parts.forEach(p=>{ ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r); ctx.fillStyle=p.c;
+    if(p.shape==='heart'){ const s=p.s/10; ctx.beginPath(); ctx.moveTo(0,3*s); ctx.bezierCurveTo(0,0,-5*s,-1*s,-5*s,-4*s); ctx.bezierCurveTo(-5*s,-7*s,0,-8*s,0,-4*s); ctx.bezierCurveTo(0,-8*s,5*s,-7*s,5*s,-4*s); ctx.bezierCurveTo(5*s,-1*s,0,0,0,3*s); ctx.fill(); }
+    else { ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6); } ctx.restore(); });
+  if(parts.length) raf=requestAnimationFrame(stepConfetti); else { raf=null; cv.style.display='none'; }
+}
+let actx=null;
+function ping(freq){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); const o=actx.createOscillator(),g=actx.createGain(); o.type='sine'; o.frequency.value=freq; g.gain.setValueAtTime(0.0001,actx.currentTime); g.gain.exponentialRampToValueAtTime(0.18,actx.currentTime+0.02); g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+0.35); o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime+0.36); }catch(e){} }
+function purr(){ ping(520); setTimeout(()=>ping(620),90); }
+
+/* ---------- Toast ---------- */
+let toastTimer=null;
+function toast(em,msg){ $('toastEm').textContent=em; $('toastMsg').textContent=msg; const t=$('toast'); t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2600); }
+
+/* ---------- Hearts bg ---------- */
+(function(){ const bg=$('heartBg'), em=['💖','💕','🌸','✨','💗'];
+  for(let i=0;i<14;i++){ const s=document.createElement('span'); s.textContent=em[(Math.random()*em.length)|0]; s.style.left=Math.random()*100+'vw'; s.style.fontSize=(12+Math.random()*22)+'px'; s.style.animationDuration=(9+Math.random()*12)+'s'; s.style.animationDelay=(-Math.random()*15)+'s'; bg.appendChild(s); }
+})();
+
+/* ---------- Theme ---------- */
+function applyTheme(){ document.body.dataset.theme=S.theme; document.querySelector('meta[name=theme-color]').setAttribute('content', S.theme==='lavanda'?'#a93dff':S.theme==='fucsia'?'#e30074':'#ff5fa2'); }
+
+/* ---------- Modals ---------- */
+function openModal(id){ $(id).classList.add('show'); }
+function closeModal(id){ $(id).classList.remove('show'); }
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m && m.id!=='nameModal') m.classList.remove('show'); }));
+
+/* Name cat */
+$('nameSave').onclick=()=>{ const v=($('nameInput').value||'').trim().slice(0,14); if(!v){ $('nameInput').focus(); return; } S.cat.name=v; S.cat.set=true; save(); closeModal('nameModal'); render(); toast('🐱','Salut, eu sunt '+v+'! 💕'); purr(); };
+/* Rename */
+function openRename(){
+  const can=S.total>=100000;
+  $('renameLocked').style.display=can?'none':'block';
+  $('renameOpen').style.display=can?'block':'none';
+  $('renameCloseRow').style.display=can?'none':'flex';
+  if(!can){ const p=(S.total/100000*100).toFixed(1).replace('.',','); $('renameProg').textContent='Progres: '+fmt(S.total)+' / 100.000 ('+p+'%) — mai ai '+fmt(100000-S.total)+' pași 💪'; }
+  else { $('renameInput').value=S.cat.name; }
+  openModal('renameModal');
+}
+$('renameClose').onclick=()=>closeModal('renameModal');
+$('renameCancel').onclick=()=>closeModal('renameModal');
+$('renameSave').onclick=()=>{ const v=($('renameInput').value||'').trim().slice(0,14); if(!v) return; S.cat.name=v; save(); closeModal('renameModal'); render(); toast('✏️','Acum mă cheamă '+v+'! 💖'); };
+
+/* Goal modal */
+function openGoal(){ $('goalInput').value=S.goal; $('sensInput').value=Math.round(S.sensitivity*10); $('sensVal').textContent=S.sensitivity.toFixed(1).replace('.',','); syncPresets(); openModal('goalModal'); }
+$('openSettings').onclick=openGoal; $('goalFab').onclick=openGoal; $('goalCancel').onclick=()=>closeModal('goalModal');
+$('goalInput').oninput=syncPresets;
+function syncPresets(){ const v=+$('goalInput').value; document.querySelectorAll('.preset').forEach(p=>p.classList.toggle('active',+p.dataset.v===v)); }
+document.querySelectorAll('.preset').forEach(p=>p.onclick=()=>{ $('goalInput').value=p.dataset.v; syncPresets(); });
+$('sensInput').oninput=()=>{ $('sensVal').textContent=(+$('sensInput').value/10).toFixed(1).replace('.',','); };
+$('goalSave').onclick=()=>{ const g=Math.max(500,Math.round(+$('goalInput').value||8000)); S.goal=g; S.sensitivity=+$('sensInput').value/10; if(getToday()>=S.goal&&!wasGoalHit(todayKey())) markGoalHit(); save(); closeModal('goalModal'); render(); toast('🎯','Țintă: '+fmt(g)+' pași!'); };
+$('resetBtn').onclick=()=>{ if(confirm('Sigur ștergi TOATE datele? (pași, pisicuță, serii, realizări)')){ localStorage.removeItem('pasiroz'); localStorage.removeItem(HITKEY); S=JSON.parse(JSON.stringify(DEFAULTS)); celebratedToday=false; save(); closeModal('goalModal'); applyTheme(); render(); maybeAskName(); toast('🧹','Gata, am luat-o de la zero!'); } };
+
+/* Add modal */
+$('openAdd').onclick=()=>openModal('addModal'); $('addCancel').onclick=()=>closeModal('addModal');
+document.querySelectorAll('.adder button').forEach(b=>b.onclick=()=>addManual(+b.dataset.add));
+$('addCustom').onclick=()=>{ const v=Math.round(+$('customAdd').value); if(v>0){ addManual(v); $('customAdd').value=''; } };
+function addManual(n){ setToday(getToday()+n); S.total+=n; S.activeSec+=n*0.5; addXp(n); checkAll(); save(); render(); toast('➕','+'+fmt(n)+' pași!'); ping(660); }
+
+/* Shop */
+let shopTab='acc';
+$('openShop').onclick=()=>{ shopTab='acc'; document.querySelectorAll('.shop-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab==='acc')); renderShop(); openModal('shopModal'); };
+$('shopClose').onclick=()=>closeModal('shopModal');
+document.querySelectorAll('.shop-tab').forEach(t=>t.onclick=()=>{ shopTab=t.dataset.tab; document.querySelectorAll('.shop-tab').forEach(x=>x.classList.toggle('active',x===t)); renderShop(); });
+function renderShop(){
+  $('shopCoins').textContent=fmt(S.coins);
+  const grid=$('shopGrid'); grid.innerHTML='';
+  const items=shopTab==='acc'?ACCESSORIES:THEMES;
+  items.forEach(it=>{
+    const owned=it.cost===0||S.owned.includes(it.id);
+    const equipped=shopTab==='acc'?(S.equipAcc===it.id):(S.theme===it.id);
+    const el=document.createElement('div'); el.className='shop-item'+(owned?' owned':'')+(equipped?' equipped':'');
+    el.innerHTML=`<div class="si-ico">${it.ico}</div><div class="si-name">${it.name}</div><div class="si-cost">${owned?(equipped?'✓ portat':'deține'):'💗 '+it.cost}</div>`;
+    el.onclick=()=>shopClick(it,owned);
+    grid.appendChild(el);
+  });
+}
+function shopClick(it,owned){
+  if(!owned){
+    if(S.coins<it.cost){ toast('😿','Îți mai trebuie '+fmt(it.cost-S.coins)+' 💗'); return; }
+    S.coins-=it.cost; S.owned.push(it.id); toast('🛍️','Ai cumpărat '+it.name+'!'); ping(740); burst(40);
+  }
+  if(shopTab==='acc'){ S.equipAcc=it.id; } else { S.theme=it.id; applyTheme(); }
+  save(); renderShop(); render();
+}
+
+/* Pet the cat */
+$('catStage').onclick=()=>{ const f=$('catFace'); f.classList.remove('pet'); void f.offsetWidth; f.classList.add('pet'); const old=f.textContent; f.textContent='😻'; purr(); if(Math.random()<0.5) burst(18); setTimeout(()=>{ f.textContent=stageOf(S.total).st.face; },700); };
+
+/* Start/stop */
+$('startBtn').onclick=function(){ if(this.dataset.on==='1') stopSensor(); else startSensor(); try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); }catch(e){} };
+
+/* Day rollover */
+let lastDay=todayKey();
+setInterval(()=>{ if(todayKey()!==lastDay){ lastDay=todayKey(); celebratedToday=false; recomputeStreak(); render(); } else { render(); } },20000);
+
+/* ---------- Init ---------- */
+function maybeAskName(){ if(!S.cat.set) openModal('nameModal'); }
+applyTheme(); recomputeStreak(); celebratedToday=wasGoalHit(todayKey()); render();
+setTimeout(maybeAskName,500);
+setTimeout(()=>{ if(getToday()===0 && S.cat.set) toast('💖','Apasă „Pornește" și hai la plimbare!'); },900);
+</script>
+</body>
+</html>
